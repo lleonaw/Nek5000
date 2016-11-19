@@ -214,6 +214,9 @@ C
       character*132 string(100)
 
       VNEKTON = 3 ! dummy not really used anymore
+
+      optlevel = 0! fixed for now
+      loglevel = 3! fixed for now
       
       IF(NID.EQ.0) THEN
         READ(9,*,ERR=400)
@@ -289,6 +292,7 @@ C
       do i=1,NPSCL2
          IFTMSH(i) = .false.
          IFADVC(i) = .false. 
+         IFDIFF(i) = .true. 
       enddo
 
       do i=1,NPSCL1
@@ -577,11 +581,12 @@ C
          endif
       endif
 
-c      if (ifmvbd .and. ifsplit) then 
-c         if(nid.eq.0) write(6,*) 
-c     $   'ABORT: Moving boundary in Pn-Pn is not supported'
-c         call exitt
-c      endif
+      if (ifcvode) then 
+         if(nid.eq.0) write(6,*) 
+     $   'ABORT: Using CVODE requires .par file!'
+         call exitt
+      endif
+
       if (ifmoab .and..not. ifsplit) then
          if(nid.eq.0) write(6,*) 
      $   'ABORT: MOAB in Pn-Pn-2 is not supported'

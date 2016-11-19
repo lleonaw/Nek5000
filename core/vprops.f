@@ -101,10 +101,10 @@ C
          ELSE IF(MATYPE(IGRP,IFIELD).EQ.0)THEN
 C
 C           Default constant property
+
 C
             CDIFF  = CPFLD(IFIELD,1)
             CTRANS = CPFLD(IFIELD,2)
-c           write(6,*) 'vdiff:',ifield,cdiff,ctrans
             CALL CFILL(VDIFF (1,1,1,IEL,IFIELD),CDIFF,NXYZ1)
             CALL CFILL(VTRANS(1,1,1,IEL,IFIELD),CTRANS,NXYZ1)
             IF (CDIFF.LE.0.0) THEN

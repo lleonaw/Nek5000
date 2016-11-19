@@ -1213,6 +1213,10 @@ C
       do ips=1,npscal
          ps(ips) = t(ix,iy,iz,e,ips+1)
       enddo
+
+      pa = pr(ix,iy,iz,e)
+      p0 = p0th
+
       si2   = sii (ix,iy,iz,e)
       si3   = siii(ix,iy,iz,e)
       udiff = vdiff (ix,iy,iz,e,ifield)
@@ -2143,6 +2147,47 @@ c
  100  continue
 
       glcflux = glsum(termVL,1)  ! sum across processors
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine local_bflux(flux,tx,ty,tz,ifld)
+c
+      include 'SIZE'
+      include 'TOTAL'
+
+      real   tx(lx1,ly1,lz1,1),
+     $       ty(lx1,ly1,lz1,1),
+     $       tz(lx1,ly1,lz1,1),
+     $     flux(lx1,ly1,lz1,1)
+
+      character cb*3
+
+      nel    = nelfld(ifld)
+      nxyz   = nx1*ny1*nz1
+      ntot   = nxyz*nel
+      nfaces = 2*ndim
+
+      call rzero(flux,ntot)
+
+      do 100 iel=1,nel
+      do 100 iface=1,nfaces
+         cb = cbc(iface,iel,ifld)
+         if (cb.ne.'E  ') then
+            call facind(kx1,kx2,ky1,ky2,kz1,kz2,nx1,ny1,nz1,iface)
+            ia = 0
+            do 10 iz=kz1,kz2
+            do 10 iy=ky1,ky2
+            do 10 ix=kx1,kx2
+               ia =ia + 1
+               dtmp = tx(ix,iy,iz,iel)*unx(ia,1,iface,iel)
+     $                + ty(ix,iy,iz,iel)*uny(ia,1,iface,iel)
+     $                + tz(ix,iy,iz,iel)*unz(ia,1,iface,iel)
+               flux(ix,iy,iz,iel) = flux(ix,iy,iz,iel)
+     $                              + dtmp*area(ia,1,iface,iel)
+ 10         continue
+         endif
+ 100  continue
 
       return
       end

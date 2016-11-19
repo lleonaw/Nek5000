@@ -4619,6 +4619,7 @@ c     enddo
       do k=1,3
          cpfld(nfld,k)=cpfld(nfield,k)
          call copy (cpgrp(-5,nfld,k),cpgrp(-5,nfield,k),16)
+         write(6,*) 'this is cpfld:',k,nfield,nfld,cpfld(nfld,k)
       enddo
       call icopy(matype(-5,nfld),matype(-5,nfield),16)
 
@@ -4644,6 +4645,12 @@ c     enddo
         enddo
         enddo
       enddo
+
+      ifldmhd = npscal + 3
+      if (ifmhd) then
+         cpfld(ifldmhd,1) = param(29)  ! magnetic viscosity
+         cpfld(ifldmhd,2) = param( 1)  ! magnetic rho same as for fluid
+      endif
 
 
       return

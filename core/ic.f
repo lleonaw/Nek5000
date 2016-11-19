@@ -256,7 +256,6 @@ c        if(psmax(i).eq.0) call perturb(t(1,1,1,1,1+i),i+2,small)
 c     enddo
 c     ifield = ifldsave
     
-c     if (ifflow.and..not.ifdg)  then  ! Current dg is for scalars only
       if (ifflow.and..not.ifcmt) then  ! pff, 11/4/15
          ifield = 1
          call opdssum(vx,vy,vz)
@@ -265,7 +264,6 @@ c     if (ifflow.and..not.ifdg)  then  ! Current dg is for scalars only
          if (ifvcor)  call ortho(pr)  ! remove any mean
       endif
 
-c     if (ifmhd.and..not.ifdg) then   ! Current dg is for scalars only
       if (ifmhd) then
          ifield = ifldmhd
          call opdssum(bx,by,bz)
@@ -287,8 +285,7 @@ c     if (ifmhd.and..not.ifdg) then   ! Current dg is for scalars only
          enddo
        endif
       endif
-c
-c     if (ifpert.and..not.ifdg) then ! Still not DG
+
       if (ifpert) then
          do jp=1,npert
             ifield = 1
@@ -1712,6 +1709,7 @@ c-----------------------------------------------------------------------
 
       nel   = nelfld(ifield)
 
+c     write(6,*) ifield,ifldk,iflde,ifldmhd,' ifldk'
       if (ifmodel .and. ifkeps .and. ifield.eq.ifldk) then
 
          do e=1,nel

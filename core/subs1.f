@@ -1132,14 +1132,9 @@ c     INTLOC =      integration type
 
          endif
 
-c        if (ifield.eq.1 .and. ifanls) then   ! this should be replaced
-c           const = 2.                        ! with a correct stress
-c           call cmult (h1,const,ntot1)       ! formulation
-c        endif
-
-      ELSE
-         CALL COPY  (H1,VDIFF (1,1,1,1,IFIELD),NTOT1)
-         CALL RZERO (H2,NTOT1)
+      else
+         call copy  (h1,vdiff (1,1,1,1,ifield),ntot1)
+         call rzero (h2,ntot1)
          if (param(107).ne.0) then
             write(6,*) 'SPECIAL SETHLM!!',param(107)
 c           call cfill (h2,param(107),ntot1)

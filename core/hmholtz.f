@@ -1549,17 +1549,16 @@ c **  zero out stuff for Lanczos eigenvalue estimator
 
 c     Initialization
 
-      NXYZ   = NX1*NY1*NZ1
-      NEL    = NELV
-      VOL    = VOLVM1
-      IF (ifield.eq.2) NEL=NELT
-      IF (ifield.eq.2) VOL=VOLTM1
-      n  = NEL*NXYZ
+      nxyz   = nx1*ny1*nz1
+      nel    = nelv
+      vol    = volvm1
+      if (ifield.eq.2) nel=nelt
+      if (ifield.eq.2) vol=voltm1
+      n  = nel*nxyz
 
       tol=tin
       if (param(22).ne.0) tol=abs(param(22))
       niter = min(maxit,maxcg)
-      niter = 900
  
       imsh = ifield
       call setprec(d,h1,h2,imsh,1) !  diag preconditioner
