@@ -23,9 +23,6 @@ C     energy equation expressed in terms of temperature.
      $              ,tx(lx1,ly1,lz1,lelt)
      $              ,ty(lx1,ly1,lz1,lelt)
      $              ,tz(lx1,ly1,lz1,lelt)
-      common /vext/  vx_e  (lx1*ly1*lz1*lelv)
-     $ ,             vy_e  (lx1,ly1,lz1,lelv)
-     $ ,             vz_e  (lx2,ly2,lz2,lelv)
 
 
       nxyz = nx1*ny1*nz1

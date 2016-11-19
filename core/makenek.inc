@@ -7,18 +7,15 @@ echo "makenek - automatic build tool for Nek5000"
 
 if [ "$PPLIST" == "?" ]; then
   echo "available pre-processor symbols:" 
-  echo "  NOTIMER   disable runtime statistics"
-  echo "  MPITIMER  enable MPI runtime statistics"
   echo "  MPIIO     use MPI-IO I/O kernel (experimental)"
-  echo "  BGQ       enable Blue Gene optimizations (BG/Q)"
+  echo "  BGQ       use BGQ optimized mxm"
   echo "  XSMM      use libxsmm for mxm"
-  echo "  CVODE     use ODE solver from Sundials to solve for IFIELD>1 (experimental)"
-  echo "  MOAB      enable MOAB/CUBIT support (experimental)"
-  echo "  NEKNEK    enable multidomain support (experimental)"
-  echo "  NO_LAPACK disable nek-supplied LAPACK routines"
   echo "  BLAS_MXM  disable nek-supplied BLAS routines"
+  echo "  CVODE     enable CVODE solver for scalars"
+  echo "  MOAB      enable MOAB/CUBIT support (experimental)"
+  echo "  NO_LAPACK disable nek-supplied LAPACK routines"
   echo "  EXTBAR    adds underscore to exit call(for BGQ)"
-  exit 1
+ exit 1
 fi
 
 # first do some checks ...
@@ -520,7 +517,8 @@ do
 done
 
 # tweak SIZE file
-if [ -f "./SIZE" ]; then
+cat SIZE | grep 'SIZE.h' >/dev/null
+if [ $? -ne 0 ];  then
   cat SIZE | grep -i 'lxo' >/dev/null
   if [ $? -ne 0 ]; then
      echo >>SIZE
@@ -617,9 +615,6 @@ if [ -f "./SIZE" ]; then
       echo 'c IFCMT=FALSE  then lelcmt=1'  >>SIZE
   fi
   fi
-else
-  echo "FATAL ERROR: Cannot find SIZE"
-  exit 1
 fi
 
 # tweak .usr (actually, .f ) file

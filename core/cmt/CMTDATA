@@ -40,8 +40,9 @@ c---------------------------------------------------------------------
       COMMON /CMTIOFLGS/   res_freq
       integer              res_freq
 
-      COMMON /CMTVISCO/  ifbr1
-      logical            ifbr1
+      COMMON /CMTVISCO/  ifbr1,ifsip
+      logical            ifbr1,ifsip
+
       COMMON /CMTFLTRP/   NCUT, NCUTD, WGHT, WGHTD
       real                 WGHT, WGHTD
 ! index for gas density in vtrans, Q+-

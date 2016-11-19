@@ -733,24 +733,24 @@ C
       RETURN
       END
 c-----------------------------------------------------------------------
-      SUBROUTINE BCDIRSC(S)
-C
-C     Apply Dirichlet boundary conditions to surface of scalar, S.
-C     Use IFIELD as a guide to which boundary conditions are to be applied.
-C
-      INCLUDE 'SIZE'
-      INCLUDE 'TSTEP'
-      INCLUDE 'INPUT'
-      INCLUDE 'SOLN'
-      INCLUDE 'TOPOL'
-      INCLUDE 'CTIMER'
-C
-      DIMENSION S(LX1,LY1,LZ1,LELT)
-      COMMON /SCRSF/ TMP(LX1,LY1,LZ1,LELT)
-     $             , TMA(LX1,LY1,LZ1,LELT)
-     $             , SMU(LX1,LY1,LZ1,LELT)
+      subroutine bcdirsc(s)
+c
+c     Apply Dirichlet boundary conditions to surface of scalar, S.
+c     Use IFIELD as a guide to which boundary conditions are to be applied.
+c
+      include 'SIZE'
+      include 'TSTEP'
+      include 'INPUT'
+      include 'SOLN'
+      include 'TOPOL'
+      include 'CTIMER'
+c
+      dimension s(lx1,ly1,lz1,lelt)
+      common /scrsf/ tmp(lx1,ly1,lz1,lelt)
+     $             , tma(lx1,ly1,lz1,lelt)
+     $             , smu(lx1,ly1,lz1,lelt)
       common  /nekcb/ cb
-      CHARACTER CB*3
+      character cb*3
 
       if (icalld.eq.0) then
          tusbc=0.0
@@ -759,58 +759,58 @@ C
       endif
       nusbc=nusbc+1
       etime1=dnekclock()
-C
-      IFLD   = 1
-      NFACES = 2*NDIM
-      NXYZ   = NX1*NY1*NZ1
-      NEL    = NELFLD(IFIELD)
-      NTOT   = NXYZ*NEL
-      NFLDT  = NFIELD - 1
-C
-      CALL RZERO(TMP,NTOT)
-C
-C     Temperature boundary condition
-C
-      DO 2100 ISWEEP=1,2
-C
-         IF (IFMODEL .AND. IFKEPS .AND. IFIELD.GE.NFLDT)
-     $       CALL TURBWBC (TMP,TMA,SMU)
-C
-         DO 2010 IE=1,NEL
-         DO 2010 IFACE=1,NFACES
-            CB=CBC(IFACE,IE,IFIELD)
-            BC1=BC(1,IFACE,IE,IFIELD)
-            BC2=BC(2,IFACE,IE,IFIELD)
-            BC3=BC(3,IFACE,IE,IFIELD)
-            BC4=BC(4,IFACE,IE,IFIELD)
-            BCK=BC(4,IFACE,IE,IFLD)
-            BCE=BC(5,IFACE,IE,IFLD)
-            IF (CB.EQ.'T  ') CALL FACEV (TMP,IE,IFACE,BC1,NX1,NY1,NZ1)
-            IF (CB.EQ.'MCI') CALL FACEV (TMP,IE,IFACE,BC4,NX1,NY1,NZ1)
-            IF (CB.EQ.'MLI') CALL FACEV (TMP,IE,IFACE,BC4,NX1,NY1,NZ1)
-            IF (CB.EQ.'KD ') CALL FACEV (TMP,IE,IFACE,BCK,NX1,NY1,NZ1)
-            IF (CB.EQ.'ED ') CALL FACEV (TMP,IE,IFACE,BCE,NX1,NY1,NZ1)
-            IF (CB.EQ.'t  ' .OR. CB.EQ.'kd ' .or.
-     $          CB.EQ.'ed ' .or. cb.eq.'o  ') 
-     $          CALL FACEIS (CB,TMP(1,1,1,IE),IE,IFACE,NX1,NY1,NZ1)
- 2010    CONTINUE
-C
-C        Take care of Neumann-Dirichlet shared edges...
-C
-         IF (ISWEEP.EQ.1) CALL DSOP(TMP,'MXA',NX1,NY1,NZ1)
-         IF (ISWEEP.EQ.2) CALL DSOP(TMP,'MNA',NX1,NY1,NZ1)
- 2100 CONTINUE
-C
-C     Copy temporary array to temperature array.
-C
-      CALL COL2(S,TMASK(1,1,1,1,IFIELD-1),NTOT)
-      CALL ADD2(S,TMP,NTOT)
+c
+      ifld   = 1
+      nfaces = 2*ndim
+      nxyz   = nx1*ny1*nz1
+      nel    = nelfld(ifield)
+      ntot   = nxyz*nel
+      nfldt  = nfield - 1
+c
+      call rzero(tmp,ntot)
+c
+c     Temperature boundary condition
+c
+      do 2100 isweep=1,2
+c
+         if (ifmodel .and. ifkeps .and. ifield.ge.nfldt)
+     $       call turbwbc (tmp,tma,smu)
+c
+         do 2010 ie=1,nel
+         do 2010 iface=1,nfaces
+            cb=cbc(iface,ie,ifield)
+            bc1=bc(1,iface,ie,ifield)
+            bc2=bc(2,iface,ie,ifield)
+            bc3=bc(3,iface,ie,ifield)
+            bc4=bc(4,iface,ie,ifield)
+            bck=bc(4,iface,ie,ifld)
+            bce=bc(5,iface,ie,ifld)
+            if (cb.eq.'T  ') call facev (tmp,ie,iface,bc1,nx1,ny1,nz1)
+            if (cb.eq.'MCI') call facev (tmp,ie,iface,bc4,nx1,ny1,nz1)
+            if (cb.eq.'MLI') call facev (tmp,ie,iface,bc4,nx1,ny1,nz1)
+            if (cb.eq.'KD ') call facev (tmp,ie,iface,bck,nx1,ny1,nz1)
+            if (cb.eq.'ED ') call facev (tmp,ie,iface,bce,nx1,ny1,nz1)
+            if (cb.eq.'t  ' .or. cb.eq.'kd ' .or.
+     $          cb.eq.'ed ' .or. cb.eq.'o  ') 
+     $          call faceis (cb,tmp(1,1,1,ie),ie,iface,nx1,ny1,nz1)
+ 2010    continue
+c
+c        Take care of Neumann-Dirichlet shared edges...
+c
+         if (isweep.eq.1) call dsop(tmp,'MXA',nx1,ny1,nz1)
+         if (isweep.eq.2) call dsop(tmp,'MNA',nx1,ny1,nz1)
+ 2100 continue
+c
+c     Copy temporary array to temperature array.
+c
+      call col2(s,tmask(1,1,1,1,ifield-1),ntot)
+      call add2(s,tmp,ntot)
 
       tusbc=tusbc+(dnekclock()-etime1)
 
-      RETURN
-      END
-C
+      return
+      end
+c
 c-----------------------------------------------------------------------
       SUBROUTINE BCNEUSC(S,ITYPE)
 C
@@ -945,19 +945,19 @@ C
       RETURN
       END
 c-----------------------------------------------------------------------
-      SUBROUTINE FACEIS (CB,S,IEL,IFACE,NX,NY,NZ)
-C
-C     Assign inflow boundary conditions to face(IE,IFACE)
-C     for scalar S.
-C
-      INCLUDE 'SIZE'
-      INCLUDE 'PARALLEL'
-      INCLUDE 'NEKUSE'
-      INCLUDE 'TSTEP'     ! ifield    11/19/2010
-      INCLUDE 'SOLN'      ! tmask()   11/19/2010
-C
-      DIMENSION S(LX1,LY1,LZ1)
-      CHARACTER CB*3
+      subroutine faceis (cb,s,iel,iface,nx,ny,nz)
+c
+c     Assign inflow boundary conditions to face(IE,IFACE)
+c     for scalar S.
+c
+      include 'SIZE'
+      include 'PARALLEL'
+      include 'NEKUSE'
+      include 'TSTEP'     ! ifield    11/19/2010
+      include 'SOLN'      ! tmask()   11/19/2010
+c
+      dimension s(lx1,ly1,lz1)
+      character cb*3
 c
       common  /nekcb/ cb3
       character*3 cb3
@@ -969,64 +969,64 @@ c
 C     Passive scalar term
 
       ieg = lglel(iel)
-      CALL FACIND (KX1,KX2,KY1,KY2,KZ1,KZ2,NX,NY,NZ,IFACE)
+      call facind (kx1,kx2,ky1,ky2,kz1,kz2,nx,ny,nz,iface)
 
       if (cb.eq.'t  ') then
-         DO 100 IZ=KZ1,KZ2                           !  11/19/2010: The tmask() screen
-         DO 100 IY=KY1,KY2                           !  added here so users can leave
-         DO 100 IX=KX1,KX2                           !  certain points to be Neumann,
+         do 100 iz=kz1,kz2                           !  11/19/2010: The tmask() screen
+         do 100 iy=ky1,ky2                           !  added here so users can leave
+         do 100 ix=kx1,kx2                           !  certain points to be Neumann,
             if (tmask(ix,iy,iz,iel,ifld1).eq.0) then !  if desired.
-               CALL NEKASGN (IX,IY,IZ,IEL)
-               CALL USERBC  (IX,IY,IZ,IFACE,IEG)
-               S(IX,IY,IZ) = TEMP
+               call nekasgn (ix,iy,iz,iel)
+               call userbc  (ix,iy,iz,iface,ieg)
+               s(ix,iy,iz) = temp
             endif
-  100    CONTINUE
-         RETURN
+  100    continue
+         return
 
       elseif (cb.eq.'o  ') then
-         DO 101 IZ=KZ1,KZ2                           !  11/19/2010: The tmask() screen
-         DO 101 IY=KY1,KY2                           !  added here so users can leave
-         DO 101 IX=KX1,KX2                           !  certain points to be Neumann,
-            CALL NEKASGN (IX,IY,IZ,IEL)
-            CALL USERBC  (IX,IY,IZ,IFACE,IEG)
-            S(IX,IY,IZ) = PA
-  101    CONTINUE
-         RETURN
+         do 101 iz=kz1,kz2                           !  11/19/2010: The tmask() screen
+         do 101 iy=ky1,ky2                           !  added here so users can leave
+         do 101 ix=kx1,kx2                           !  certain points to be Neumann,
+            call nekasgn (ix,iy,iz,iel)
+            call userbc  (ix,iy,iz,iface,ieg)
+            s(ix,iy,iz) = pa
+  101    continue
+         return
 
-      ELSEIF (CB.EQ.'ms ' .OR. CB.EQ.'msi') THEN
+      elseif (cb.eq.'ms ' .or. cb.eq.'msi') then
 
-         DO 200 IZ=KZ1,KZ2
-         DO 200 IY=KY1,KY2
-         DO 200 IX=KX1,KX2
-            CALL NEKASGN (IX,IY,IZ,IEL)
-            CALL USERBC  (IX,IY,IZ,IFACE,IEG)
-            S(IX,IY,IZ) = SIGMA
-  200    CONTINUE
-C
-      ELSEIF (CB.EQ.'kd ') THEN
-C
-         DO 300 IZ=KZ1,KZ2
-         DO 300 IY=KY1,KY2
-         DO 300 IX=KX1,KX2
-            CALL NEKASGN (IX,IY,IZ,IEL)
-            CALL USERBC  (IX,IY,IZ,IFACE,IEG)
-            S(IX,IY,IZ) = TURBK
-  300    CONTINUE
-C
-      ELSEIF (CB.EQ.'ed ') THEN
-C
-         DO 400 IZ=KZ1,KZ2
-         DO 400 IY=KY1,KY2
-         DO 400 IX=KX1,KX2
-            CALL NEKASGN (IX,IY,IZ,IEL)
-            CALL USERBC  (IX,IY,IZ,IFACE,IEG)
-            S(IX,IY,IZ) = TURBE
-  400    CONTINUE
-C
-      ENDIF
-C
-      RETURN
-      END
+         do 200 iz=kz1,kz2
+         do 200 iy=ky1,ky2
+         do 200 ix=kx1,kx2
+            call nekasgn (ix,iy,iz,iel)
+            call userbc  (ix,iy,iz,iface,ieg)
+            s(ix,iy,iz) = sigma
+  200    continue
+c
+      elseif (cb.eq.'kd ') then
+c
+         do 300 iz=kz1,kz2
+         do 300 iy=ky1,ky2
+         do 300 ix=kx1,kx2
+            call nekasgn (ix,iy,iz,iel)
+            call userbc  (ix,iy,iz,iface,ieg)
+            s(ix,iy,iz) = turbk
+  300    continue
+c
+      elseif (cb.eq.'ed ') then
+c
+         do 400 iz=kz1,kz2
+         do 400 iy=ky1,ky2
+         do 400 ix=kx1,kx2
+            call nekasgn (ix,iy,iz,iel)
+            call userbc  (ix,iy,iz,iface,ieg)
+            s(ix,iy,iz) = turbe
+  400    continue
+c
+      endif
+c
+      return
+      end
 c-----------------------------------------------------------------------
       SUBROUTINE FACEIV (CB,V1,V2,V3,IEL,IFACE,NX,NY,NZ)
 C

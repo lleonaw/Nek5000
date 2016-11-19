@@ -286,7 +286,7 @@ c
       ifd=.true.
 c
       nrstd = md**3
-      call lim_chk(nrstd,ldd,'urus ','ldd  ','convop_fst')
+      call lim_chk(nrstd,ldd,'urus1','ldd  ','convop_fst')
 c
       do e=1,nel
          call grad_rstd(ur,us,ut,u(1,e),mx,md,if3d,ud)
@@ -328,7 +328,7 @@ c
       ifd=.true.
 c
       nrstd = md**2
-      call lim_chk(nrstd,ldd,'urus ','ldd  ','convop_fst')
+      call lim_chk(nrstd,ldd,'urus2','ldd  ','convop_fst')
 c
       do e=1,nel
          call grad_rstd(ur,us,ut,u(1,e),mx,md,if3d,ud)
@@ -687,8 +687,8 @@ C
 
       call set_dealias_rx
 
-      nxyz1 = nx1*ny1*nz1
-      nxyzd = nxd*nyd*nzd
+      nxyz1 = lx1*ly1*lz1
+      nxyzd = lxd*lyd*lzd
 
       nxyzu = nxyz1
       if (ifuf) nxyzu = nxyzd
@@ -1113,7 +1113,7 @@ c     Assumes that current convecting field is on dealias mesh, in c()
       ifd=.true.
 
       nrstd = md**3
-      call lim_chk(nrstd,ldd,'urus ','ldd  ','convp_cons')
+      call lim_chk(nrstd,ldd,'urus3','ldd  ','convp_cons')
 
       do e=1,nel
 
@@ -1168,7 +1168,7 @@ c     Assumes that current convecting field is on dealias mesh, in c()
       if (md.ne.mx) ifd=.true.
 
       nrstd = md**2
-      call lim_chk(nrstd,ldd,'urus ','ldd  ','convp_cons')
+      call lim_chk(nrstd,ldd,'urus4','ldd  ','convp_cons')
 
       if (nio.eq.0.and.istep.lt.3) write(6,*) 'convp_cons',istep
 
@@ -1269,7 +1269,7 @@ c     Global-to-local mapping for gs
       parameter(lf=lx1*lz1*2*ldim*lelt)
       common /c_is1/ glo_num_face(lf)
      $             , glo_num_vol((lx1+2)*(ly1+2)*(lz1+2)*lelt)
-      integer*8 glo_num_face,glo_num_vol,ngv,nf
+      integer*8 glo_num_face,glo_num_vol,ngv
 
       common /nekmpi/ mid,mp,nekcomm,nekgroup,nekreal
 
@@ -1386,25 +1386,6 @@ c-----------------------------------------------------------------------
          i=dg_face(j)
          vol_ary(i,1,1,1) = vol_ary(i,1,1,1)+faceary(j,1,1)
       enddo
-
-      return
-      end
-c-----------------------------------------------------------------------
-      subroutine dg_setup
-      include 'SIZE'
-      include 'TOTAL'
-
-      common /ivrtx/ vertex ((2**ldim)*lelt)
-      integer vertex
-
-      if (ifdg) then
-
-        call setup_dg_gs(dg_hndlx,nx1,ny1,nz1,nelt,nelgt,vertex)
-        call dg_set_fc_ptr
-
-        call set_eta_alpha  ! For diffusion operator
-
-      endif
 
       return
       end
@@ -1527,122 +1508,6 @@ c     return
       return
       end
 c-----------------------------------------------------------------------
-      subroutine conv_rhs_dg (du,u,c)
-c
-      include 'SIZE'
-      include 'TOTAL'
-
-c     Apply convecting field c(1,ndim) to scalar field u(1).
-
-      real du(1),u(1),c(1)
-
-      parameter(lf=lx1*lz1*2*ldim*lelt)
-      common /scrdg/ uf(lf),uxf(lf),uyf(lf),uzf(lf),upwind_wgt(lf)
-     $             , beta_c(lx1*lz1),jaco_c(lx1*lz1),wghtc(lx1*lz1)
-     $             , beta_f(lxd*lzd),jaco_f(lxd*lzd),wghtf(lxd*lzd)
-     $             , ufine (lxd*lzd),zptf(lxd),wgtf(lxd)
-      real jaco_c,jaco_f
-
-      integer e,f,fdim
-
-      n  = nx1*ny1*nz1*nelv
-      nf = nx1*nz1*2*ndim*nelt
-
-c     Set fine-scale surface weights
-
-      call zwgl(zptf,wgtf,nxd)
-
-      if (if3d) then
-         k=0
-         do j=1,ny1
-         do i=1,nx1
-            k=k+1
-            wghtc(k)=wxm1(i)*wzm1(j)
-         enddo
-         enddo
-         k=0
-         do j=1,nyd
-         do i=1,nxd
-            k=k+1
-            wghtf(k)=wgtf(i)*wgtf(j)
-         enddo
-         enddo
-      else
-         call copy(wghtc,wxm1,nx1)
-         call copy(wghtf,wgtf,nxd)
-      endif
-
-      if (ifcons) then
-        if (if3d     ) call convop_cons_3d (du,u,c,nx1,nxd,nelv)
-        if (.not.if3d) call convop_cons_2d (du,u,c,nx1,nxd,nelv)
-      else
-        if (if3d     ) call convop_fst_3d  (du,u,c,nx1,nxd,nelv)
-        if (.not.if3d) call convop_fst_2d  (du,u,c,nx1,nxd,nelv)
-      endif
-
-      call full2face(uf ,u )
-      call full2face(uxf,vx)
-      call full2face(uyf,vy)
-      call full2face(uzf,vz)
-      if (.not.if3d) call rzero(uzf,nf)
-
-      beta_u = 0.00 ! 1=full upwind; 0=central flux
-      beta_u = 0.25 ! 1=full upwind; 0=central flux
-      beta_u = 1.00 ! 1=full upwind; 0=central flux
-      beta_u = param(98)
-      if (istep.le.5.and.nio.eq.0) write(6,*) beta_u,' dg upwind'
-
-      nface = 2*ndim
-      nxz   = nx1*nz1
-      nxzd  = nxd*nzd
-      k     = 0
-      do e=1,nelt         ! This formula for upwind weights appears to
-      do f=1,nface        ! assume that U is continuous, or at least of
-
-        kface = k+1
-        do i=1,nxz        ! the same sign on either side of the interface.
-
-         k=k+1
-
-         beta   = ( unx (i,1,f,e)*uxf(k)
-     $            + uny (i,1,f,e)*uyf(k)
-     $            + unz (i,1,f,e)*uzf(k))
-
-         upwind_wgt(k) = 1.0
-         if (beta.gt.0) upwind_wgt(k) = 0.0
-         upwind_wgt(k) = 0.5*(1-beta_u) + upwind_wgt(k)*beta_u
-
-         beta_c(i)   = -beta
-         jaco_c(i)   = area(i,1,f,e)/wghtc(i)
-
-        enddo
-
-        fdim = ndim-1 ! Dimension of face
-        call map_faced(beta_f,beta_c  ,nx1,nxd,fdim,0) ! Dealiased quadrature,
-        call map_faced(jaco_f,jaco_c  ,nx1,nxd,fdim,0) ! 0 --> coarse to fine,
-        call map_faced(ufine,uf(kface),nx1,nxd,fdim,0) !   ufine = J uf
-
-c       nxzd  = nx1*nz1
-        do i=1,nxzd
-c          ufine(i)=wghtc(i)*jaco_f(i)*beta_f(i)*ufine(i)
-           ufine(i)=wghtf(i)*jaco_f(i)*beta_f(i)*ufine(i)
-        enddo
-        call map_faced(uf(kface),ufine,nx1,nxd,fdim,1)  ! 1 --> uf = J^T ufine
-
-      enddo
-      enddo
-
-      call gs_op(dg_hndlx,uf,1,1,0)  ! 1 ==> +
-
-      call col2 (uf,upwind_wgt,nf)  ! Inefficient, but ok for now.
-                                    ! Should be combined with
-      call add_face2full( du , uf)  ! <--- this stmt.
-
-      call fbinvert     ( du )      ! Right now works only for undeformed
-
-      return
-      end
-c-----------------------------------------------------------------------
       subroutine fbinvert(rhs) ! Still in development.  10/10/15, pff.
 
       include 'SIZE'
@@ -1651,7 +1516,7 @@ c-----------------------------------------------------------------------
       real     rhs(lx1,ly1,lz1,lelt)
 
       common /cfbinv/ qn(lx1),alpha_n,beta_n
-     $               ,s1(ly1,lz1),binv(lx1)
+     $               ,s1(ly1,lz1),bnv(lx1)
      $               ,tmp(lx1*ly1*lz1*lelt)
       integer icalld
       save    icalld
@@ -1673,7 +1538,7 @@ c        tmp(i)=rhs(i,1,1,1)/bm1(i,1,1,1)   ! MATRIX.   pff, 10/10/15
          n_order = nx1-1
          do i=1,nx1
             qn(i)=pnleg(zgm1(i,1),n_order)
-            binv(i) = 1./wxm1(i)
+            bnv(i) = 1./wxm1(i)
          enddo
          gamma_n = 2./n_order
          h_n     = 2./(2*n_order+1)
@@ -1695,7 +1560,7 @@ c        tmp(i)=rhs(i,1,1,1)/bm1(i,1,1,1)   ! MATRIX.   pff, 10/10/15
             do j=1,ny1
             do i=1,nx1
                s1(j,k)=s1(j,k) + qn(i)*rhs(i,j,k,e)*a1
-               rhs(i,j,k,e) = rhs(i,j,k,e)*binv(i)*b1
+               rhs(i,j,k,e) = rhs(i,j,k,e)*bnv(i)*b1
             enddo
             enddo
             enddo
@@ -1712,7 +1577,7 @@ c        tmp(i)=rhs(i,1,1,1)/bm1(i,1,1,1)   ! MATRIX.   pff, 10/10/15
             do j=1,ny1
             do i=1,nx1
                s1(i,k)=s1(i,k) + qn(j)*rhs(i,j,k,e)*a2
-               rhs(i,j,k,e) = rhs(i,j,k,e)*binv(j)*b2
+               rhs(i,j,k,e) = rhs(i,j,k,e)*bnv(j)*b2
             enddo
             enddo
             enddo
@@ -1729,7 +1594,7 @@ c        tmp(i)=rhs(i,1,1,1)/bm1(i,1,1,1)   ! MATRIX.   pff, 10/10/15
             do j=1,ny1
             do i=1,nx1
                s1(i,j)=s1(i,j) + qn(k)*rhs(i,j,k,e)*a3
-               rhs(i,j,k,e) = rhs(i,j,k,e)*binv(k)*b3
+               rhs(i,j,k,e) = rhs(i,j,k,e)*bnv(k)*b3
             enddo
             enddo
             enddo
@@ -1758,7 +1623,7 @@ c        tmp(i)=rhs(i,1,1,1)/bm1(i,1,1,1)   ! MATRIX.   pff, 10/10/15
             do j=1,ny1
             do i=1,nx1
                s1(j,1)=s1(j,1) + qn(i)*rhs(i,j,1,e)*a1
-               rhs(i,j,1,e) = rhs(i,j,1,e)*binv(i)*b1
+               rhs(i,j,1,e) = rhs(i,j,1,e)*bnv(i)*b1
             enddo
             enddo
             do j=1,ny1
@@ -1771,7 +1636,7 @@ c        tmp(i)=rhs(i,1,1,1)/bm1(i,1,1,1)   ! MATRIX.   pff, 10/10/15
             do j=1,ny1
             do i=1,nx1
                s1(i,1)=s1(i,1) + qn(j)*rhs(i,j,1,e)*a2
-               rhs(i,j,1,e) = rhs(i,j,1,e)*binv(j)*b2
+               rhs(i,j,1,e) = rhs(i,j,1,e)*bnv(j)*b2
             enddo
             enddo
             do j=1,ny1
@@ -1786,6 +1651,385 @@ c        tmp(i)=rhs(i,1,1,1)/bm1(i,1,1,1)   ! MATRIX.   pff, 10/10/15
 c     do i=1,n
 c        rhs(i,1,1,1) = 0.5*(rhs(i,1,1,1)+tmp(i))
 c     enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine grad_rstd_ta(du,ur,us,ut,md,if3d) ! GL->GL gradt
+
+      include 'SIZE'
+      include 'DXYZ'
+
+      real    ur(1),us(1),ut(1),u(1)
+
+      logical if3d
+
+      parameter (ldg=lxd**3,lwkd=4*lxd*lxd)
+      common /dgrad/ d(ldg),dt(ldg),dg(ldg),dgt(ldg),jgl(ldg),jgt(ldg)
+     $             , wkd(lwkd)
+      real jgl,jgt
+
+      call get_dgl_ptr (ip,md,md)
+      call gradrta     (du,ur,us,ut,dgt(ip),dg(ip),dg(ip),md,md,md,if3d)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_dg_wgts
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer icalld
+      save    icalld
+      data    icalld /0/
+
+      common /finewts/ zptf(lxd),wgtf(lxd),wghtf(lxd*lzd),wghtc(lx1*lz1)
+
+      if (icalld.eq.0) then    !  Set fine-scale surface weights
+
+         icalld = 1
+
+         call zwgl(zptf,wgtf,nxd) ! GLL weights for fine grid
+         if (if3d) then
+            k=0
+            do j=1,ny1
+            do i=1,nx1
+               k=k+1
+               wghtc(k)=wxm1(i)*wzm1(j)
+            enddo
+            enddo
+            k=0
+            do j=1,nyd
+            do i=1,nxd
+               k=k+1
+               wghtf(k)=wgtf(i)*wgtf(j)
+            enddo
+            enddo
+         else
+            call copy(wghtc,wxm1,nx1)
+            call copy(wghtf,wgtf,nxd)
+         endif
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine conv_rhs_dg (du,u,c)
+c
+      include 'SIZE'
+      include 'TOTAL'
+
+c     Apply convecting field c(1,ndim) to scalar field u(1).
+
+      parameter(ldd=lxd*lyd*lzd)
+      real du(1),u(1),c(ldd*lelv,3)
+
+      parameter(lf=lx1*lz1*2*ldim*lelt)
+      common /scrdg/ uf(lf),uxf(lf),uyf(lf),uzf(lf),upwind_wgt(lf)
+     $             , beta_c(lx1*lz1),jaco_c(lx1*lz1)
+     $             , beta_f(lxd*lzd),jaco_f(lxd*lzd)
+     $             , ufine (lxd*lzd)
+      real jaco_c,jaco_f
+      common /finewts/ zptf(lxd),wgtf(lxd),wghtf(lxd*lzd),wghtc(lx1*lz1)
+
+      integer e,f,fdim
+
+
+      n  = lx1*ly1*lz1*lelv
+      nf = lx1*lz1*2*ldim*lelt
+
+      call conv_rhs_dg_weak (du,u,c(1,1),c(1,2),c(1,3))
+
+      call full2face(uf ,u )
+      call full2face(uxf,vx)
+      call full2face(uyf,vy)
+      call full2face(uzf,vz)
+      if (.not.if3d) call rzero(uzf,nf)
+
+      beta_u = 0.00 ! 1=full upwind; 0=central flux
+      beta_u = 0.25 ! 1=full upwind; 0=central flux
+      beta_u = 1.00 ! 1=full upwind; 0=central flux
+      beta_u = param(98)
+      if (istep.le.5.and.nio.eq.0) write(6,*) beta_u,' dg upwind'
+
+      nface = 2*ndim
+      nxz   = lx1*lz1
+      nxzd  = lxd*lzd
+      k     = 0
+      do e=1,nelt         ! This formula for upwind weights appears to
+      do f=1,nface        ! assume that U is continuous, or at least of
+
+        kface = k+1
+        do i=1,nxz        ! the same sign on either side of the interface.
+
+         k=k+1
+
+         beta   = ( unx (i,1,f,e)*uxf(k)
+     $            + uny (i,1,f,e)*uyf(k)
+     $            + unz (i,1,f,e)*uzf(k))
+
+         upwind_wgt(k) = 1.0
+         if (beta.gt.0) upwind_wgt(k) = 0.0
+         upwind_wgt(k) = 0.5*(1-beta_u) + upwind_wgt(k)*beta_u
+
+         beta_c(i)   = -beta
+         jaco_c(i)   = area(i,1,f,e)/wghtc(i)
+
+        enddo
+
+        fdim = ndim-1 ! Dimension of face
+        call map_faced(beta_f,beta_c  ,nx1,nxd,fdim,0) ! Dealiased quadrature,
+        call map_faced(jaco_f,jaco_c  ,nx1,nxd,fdim,0) ! 0 --> coarse to fine,
+        call map_faced(ufine,uf(kface),nx1,nxd,fdim,0) !   ufine = J uf
+
+        do i=1,nxzd
+           ufine(i)=wghtf(i)*jaco_f(i)*beta_f(i)*ufine(i)
+        enddo
+        call map_faced(uf(kface),ufine,nx1,nxd,fdim,1)  ! 1 --> uf = J^T ufine
+
+      enddo
+      enddo
+
+      call gs_op(dg_hndlx,uf,1,1,0)  ! 1 ==> +
+
+      call col2 (uf,upwind_wgt,nf)  ! Inefficient, but ok for now.
+                                    ! Should be combined with
+      call add_face2full( du , uf)  ! <--- this stmt.
+
+      call fbinvert     ( du )      ! Right now works only for undeformed
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine convect_dg(du,u,ifuf,cr,cs,ct,ifcf)
+      include 'SIZE'
+      include 'TOTAL'
+      real du(1),u(1),cr(1),cs(1),ct(1)
+      logical ifuf,ifcf
+
+      call conv_rhs_dg_weak (du,u,cr,cs,ct)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine convop_weak(du,u,cr,cs,ct,mx,md,nel) ! Weak Conservation form
+
+c     Apply convecting field c to scalar field u, conservation form d/dxj cj phi
+
+c     Assumes that current convecting field is on dealias mesh, in c()
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter (lxx=lx1*ly1*lz1,ldd=lxd*lyd*lzd)
+      real du(lxx,nel)
+      real  u(lxx,nel)
+      real  cr(ldd,nel),cs(ldd,nel),ct(ldd,nel)
+      common /ctmp1/ ur(ldd),us(ldd),ut(ldd),ju(ldd),ud(ldd),tu(ldd)
+      real ju
+
+      integer e
+
+      nxyz  = lx1*ly1*lz1
+      nrstd = md**ldim
+
+      call lim_chk(nrstd,ldd,'urus5','ldd  ','convp_cons')
+
+      do e=1,nel
+
+         call intp_rstd (ju,u(1,e),mx,md,if3d,0) ! 0 = forward; on Gauss points!
+         if (ldim.eq.3) then
+          do i=1,ldd
+            ur(i)=ju(i)*cr(i,e) ! Already in r-s-t coordinates
+            us(i)=ju(i)*cs(i,e)
+            ut(i)=ju(i)*ct(i,e)
+            ud(i)=0
+          enddo
+         else
+          do i=1,ldd
+            ur(i)=ju(i)*cr(i,e) ! Already in r-s-t coordinates
+            us(i)=ju(i)*cs(i,e)
+            ud(i)=0
+          enddo
+         endif
+         call grad_rstd_ta (ud,ur,us,ut,lxd,if3d) ! GL->GL gradt
+         call intp_rstd    (du(1,e),ud,mx,md,if3d,1) ! 1 = backward; on Gauss points!
+         do i=1,nxyz
+            du(i,e) = -du(i,e)*binvdg(i,e)
+         enddo
+
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine conv_bdry_dg_weak (du,u) ! was not existent
+c
+c     Implement  Cu = Div (cu) in weak form using DG
+c
+      include 'SIZE'
+      include 'TOTAL'
+c     Apply convecting field c(1,ndim) to scalar field u(1).
+      real du(1),u(1)
+      parameter(lf=lx1*lz1*2*ldim*lelt)
+      common /scrdg/uf(lf),uxf(lf),uyf(lf),uzf(lf),upwind_wgt(lf),us(lf)
+     $             ,beta_c(lx1*lz1),jaco_c(lx1*lz1)
+     $             ,beta_f(lxd*lzd),jaco_f(lxd*lzd)
+     $             ,ufine (lxd*lzd)
+      real jaco_c,jaco_f
+      common /finewts/ zptf(lxd),wgtf(lxd),wghtf(lxd*lzd),wghtc(lx1*lz1)
+      integer e,f,fdim
+
+      n  = nx1*ny1*nz1*nelv
+      nf = nx1*nz1*2*ndim*nelt
+
+      call full2face(uf ,u )
+      call full2face(uxf,vx)
+      call full2face(uyf,vy)
+      call full2face(uzf,vz)
+      if (.not.if3d) call rzero(uzf,nf)
+
+      beta_u = 1.00 ! 1=full upwind; 0=central flux
+
+      nface = 2*ndim
+      nxz   = nx1*nz1
+      nxzd  = nxd*nzd
+      k     = 0
+      do e=1,nelt         ! This formula for upwind weights appears to
+      do f=1,nface        ! assume that U is continuous, or at least of
+
+       kface = k+1
+       if (fw(f,e).gt.0.6) then
+
+        do i=1,nxz        ! the same sign on either side of the interface.
+
+         k=k+1
+
+         beta   = ( unx (i,1,f,e)*uxf(k)
+     $            + uny (i,1,f,e)*uyf(k)
+     $            + unz (i,1,f,e)*uzf(k))
+
+         upwind_wgt(k) = 0.0
+         if (beta.lt.0) upwind_wgt(k) = 1.0
+
+         beta_c(i)   = beta
+         jaco_c(i)   = area(i,1,f,e)/wghtc(i)
+
+        enddo
+
+        fdim = ndim-1 ! Dimension of face
+        call map_faced(beta_f,beta_c  ,nx1,nxd,fdim,0) ! Dealiased quadrature,
+        call map_faced(jaco_f,jaco_c  ,nx1,nxd,fdim,0) ! 0 --> coarse to fine,
+        call map_faced(ufine,uf(kface),nx1,nxd,fdim,0) !   ufine = J uf
+
+        do i=1,nxzd
+           ufine(i)=wghtf(i)*jaco_f(i)*beta_f(i)*ufine(i)
+        enddo
+        call map_faced(uf(kface),ufine,nx1,nxd,fdim,1)  ! 1 --> uf = J^T ufine
+
+       else
+        do i=1,nxz
+         k=k+1
+         upwind_wgt(k) = 0.0
+        enddo
+       endif
+
+      enddo
+      enddo
+
+      do j=1,ndg_facex
+         i=dg_face(j)
+         du(i) =  du(i) - ( upwind_wgt(j)*uf(j) )
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine conv_rhs_dg_weak (du,u,cr,cs,ct)
+c
+c     Implement  Cu = Div (cu) in weak form using DG
+c
+      include 'SIZE'
+      include 'TOTAL'
+
+c     Apply convecting field c(1,ndim) to scalar field u(1).
+
+      real du(1),u(1),cr(1),cs(1),ct(1)
+
+      parameter(lf=lx1*lz1*2*ldim*lelt)
+      common /scrdg/uf(lf),uxf(lf),uyf(lf),uzf(lf),upwind_wgt(lf),us(lf)
+     $             ,beta_c(lx1*lz1),jaco_c(lx1*lz1)
+     $             ,beta_f(lxd*lzd),jaco_f(lxd*lzd)
+     $             ,ufine (lxd*lzd)
+      real jaco_c,jaco_f
+
+      common /finewts/ zptf(lxd),wgtf(lxd),wghtf(lxd*lzd),wghtc(lx1*lz1)
+
+      integer e,f,fdim
+
+      n  = lx1*ly1*lz1*lelv
+      nf = lx1*lz1*2*ldim*lelt
+
+
+      call convop_weak (du,u,cr,cs,ct,nx1,nxd,nelv)  ! Volumetric term
+
+      call full2face(uf ,u )
+      call full2face(uxf,vx)
+      call full2face(uyf,vy)
+      call full2face(uzf,vz)
+      if (.not.if3d) call rzero(uzf,nf)
+
+      beta_u = 0.25 ! 1=full upwind; 0=central flux
+      beta_u = 0.00 ! 1=full upwind; 0=central flux
+      beta_u = 1.00 ! 1=full upwind; 0=central flux
+      if (istep.le.5.and.nio.eq.0) write(6,*) beta_u,' dg upwind'
+
+      nface = 2*ldim
+      nxz   = lx1*lz1
+      nxzd  = lxd*lzd
+      k     = 0
+      do e=1,nelt         ! This formula for upwind weights appears to
+      do f=1,nface        ! assume that U is continuous, or at least of
+
+        kface = k+1
+        do i=1,nxz        ! the same sign on either side of the interface.
+            k=k+1
+            beta   = ( unx (i,1,f,e)*uxf(k)
+     $               + uny (i,1,f,e)*uyf(k)
+     $               + unz (i,1,f,e)*uzf(k) )
+
+            upwind_wgt(k) = 0.0
+            if (beta.gt.0) upwind_wgt(k) = 1.0
+            upwind_wgt(k) = 0.5*(1-beta_u) + beta_u*(1-upwind_wgt(k))
+
+            if (fw(f,e).gt.0.6 .and. beta.lt.0) upwind_wgt(k)=1.
+            if (fw(f,e).gt.0.6 .and. beta.gt.0) upwind_wgt(k)=0.
+
+            beta_c(i)   = beta
+            jaco_c(i)   = area(i,1,f,e)/wghtc(i)
+        enddo
+
+        fdim = ldim-1 ! Dimension of face
+        call map_faced(beta_f,beta_c  ,nx1,nxd,fdim,0) ! Dealiased quadrature,
+        call map_faced(jaco_f,jaco_c  ,nx1,nxd,fdim,0) ! 0 --> coarse to fine,
+        call map_faced(ufine,uf(kface),nx1,nxd,fdim,0) !   ufine = J uf
+
+        do i=1,nxzd
+           ufine(i)=wghtf(i)*jaco_f(i)*beta_f(i)*ufine(i)
+        enddo
+        call map_faced(uf(kface),ufine,nx1,nxd,fdim,1)  ! 1 --> uf = J^T ufine
+        call copy     (us(kface),uf(kface),lx1*lz1)     ! Save uf for later recombination
+
+      enddo
+      enddo
+
+      call gs_op(dg_hndlx,uf,1,1,0)  ! 1 ==> +  :   uf <-- uf^- + uf^+
+
+      do j=1,ndg_facex
+         i=dg_face(j)
+         du(i) = du(i) + ( us(j)-upwind_wgt(j)*uf(j) )*binvdg(i,1)
+      enddo
 
       return
       end

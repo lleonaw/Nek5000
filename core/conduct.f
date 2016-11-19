@@ -13,7 +13,7 @@ C
       COMMON  /CPRINT/ IFPRINT
       LOGICAL          IFPRINT
       LOGICAL          IFCONV
-C
+
       COMMON /SCRNS/ TA(LX1,LY1,LZ1,LELT)
      $              ,TB(LX1,LY1,LZ1,LELT)
       COMMON /SCRVH/ H1(LX1,LY1,LZ1,LELT)
@@ -27,7 +27,7 @@ C
       endif
 
 
-      napprox(1) = laxt  ! Fix this... pff 10/10/15
+      napproxt(1) = laxtt  ! Fix this... pff 10/10/15
 
       nel    = nelfld(ifield)
       n   = nx1*ny1*nz1*nel
@@ -52,9 +52,9 @@ C
          ENDIF
          ENDIF
          if1=ifield-1
-         write(name4,1) if1-1
+         write(name4t,1) if1-1
     1    format('PS',i2)
-         if(ifield.eq.2) write(name4,'(A4)') 'TEMP'
+         if(ifield.eq.2) write(name4t,'(A4)') 'TEMP'
 
 C
 C        New geometry
@@ -65,34 +65,34 @@ c        if (ifaxis.and.ifmhd) isd = 2 !This is a problem if T is to be T!
 
          do 1000 iter=1,nmxnl ! iterate for nonlin. prob. (e.g. radiation b.c.)
 
-         INTYPE = 0
-         IF (IFTRAN) INTYPE = -1
-         CALL SETHLM  (H1,H2,INTYPE)
-         CALL BCNEUSC (TA,-1)
-         CALL ADD2    (H2,TA,N)
-         CALL BCDIRSC (T(1,1,1,1,IFIELD-1))
-         CALL AXHELM  (TA,T(1,1,1,1,IFIELD-1),H1,H2,IMESH,isd)
-         CALL SUB3    (TB,BQ(1,1,1,1,IFIELD-1),TA,N)
-         CALL BCNEUSC (TA,1)
-         CALL ADD2    (TB,TA,N)
+         intype = 0
+         if (iftran) intype = -1
+         call sethlm  (h1,h2,intype)
+         call bcneusc (ta,-1)
+         call add2    (h2,ta,n)
+         call bcdirsc (t(1,1,1,1,ifield-1))
+         call axhelm  (ta,t(1,1,1,1,ifield-1),h1,h2,imesh,ISD)
+         call sub3    (tb,bq(1,1,1,1,ifield-1),ta,n)
+         call bcneusc (ta,1)
+         call add2    (tb,ta,n)
 
-c        CALL HMHOLTZ (name4,TA,TB,H1,H2
-c    $                 ,TMASK(1,1,1,1,IFIELD-1)
-c    $                 ,TMULT(1,1,1,1,IFIELD-1)
-c    $                 ,IMESH,TOLHT(IFIELD),NMXH,isd)
+c        call hmholtz (name4t,ta,tb,h1,h2
+c    $                 ,tmask(1,1,1,1,ifield-1)
+c    $                 ,tmult(1,1,1,1,ifield-1)
+c    $                 ,imesh,tolht(ifield),nmxh,isd)
 
          if(iftmsh(ifield)) then
-           call hsolve  (name4,TA,TB,H1,H2 
+           call hsolve  (name4t,TA,TB,H1,H2 
      $                   ,tmask(1,1,1,1,ifield-1)
      $                   ,tmult(1,1,1,1,ifield-1)
      $                   ,imesh,tolht(ifield),nmxh,1
-     $                   ,approx,napprox,bintm1)
+     $                   ,approxt,napproxt,bintm1)
          else
-           call hsolve  (name4,TA,TB,H1,H2 
+           call hsolve  (name4t,TA,TB,H1,H2 
      $                   ,tmask(1,1,1,1,ifield-1)
      $                   ,tmult(1,1,1,1,ifield-1)
      $                   ,imesh,tolht(ifield),nmxh,1
-     $                   ,approx,napprox,binvm1)
+     $                   ,approxt,napproxt,binvm1)
          endif 
 
          call add2    (t(1,1,1,1,ifield-1),ta,n)
@@ -101,13 +101,13 @@ c    $                 ,IMESH,TOLHT(IFIELD),NMXH,isd)
          if (ifconv) goto 2000
 
 C        Radiation case, smooth convergence, avoid flip-flop (ER).
-         CALL CMULT (TA,0.5,N)
-         CALL SUB2  (T(1,1,1,1,IFIELD-1),TA,N)
+         call cmult (ta,0.5,n)
+         call sub2  (t(1,1,1,1,ifield-1),ta,n)
 
- 1000    CONTINUE
- 2000    CONTINUE
-         CALL BCNEUSC (TA,1)
-         CALL ADD2 (BQ(1,1,1,1,IFIELD-1),TA,N) ! no idea why... pf
+ 1000    continue
+ 2000    continue
+         call bcneusc (ta,1)
+         call add2 (bq(1,1,1,1,ifield-1),ta,n) ! no idea why... pf
 
       endif
 
@@ -222,15 +222,18 @@ C---------------------------------------------------------------
       include 'SOLN'
       include 'MASS'
       include 'TSTEP'
-C
-      COMMON /SCRUZ/ TA (LX1,LY1,LZ1,LELT)
-C
-      NEL = NELFLD(IFIELD)
-      N   = NX1*NY1*NZ1*NEL
-      CALL CONVOP  (TA,T(1,1,1,1,IFIELD-1))
-      CALL COL2    (TA,VTRANS(1,1,1,1,IFIELD),N)
-      CALL SUBCOL3 (BQ(1,1,1,1,IFIELD-1),BM1,TA,N)
-C
+
+      common /scruz/ ta (lx1*ly1*lz1*lelt)
+
+      nel = nelfld(ifield)
+      n   = nx1*ny1*nz1*nel
+
+      call convop  (ta,t(1,1,1,1,ifield-1))
+      do i=1,n
+        bq(i,1,1,1,ifield-1) = bq (i,1,1,1,ifield-1)
+     $                       - bm1(i,1,1,1)*ta(i)*vtrans(i,1,1,1,ifield)
+      enddo
+
       return
       end
 c-----------------------------------------------------------------------
@@ -241,27 +244,24 @@ C
       include 'SIZE'
       include 'SOLN'
       include 'TSTEP'
-C
-      COMMON /SCRUZ/ TA (LX1,LY1,LZ1,LELT)
-C
-      AB0   = AB(1)
-      AB1   = AB(2)
-      AB2   = AB(3)
-      NEL   = NELFLD(IFIELD)
-      N = NX1*NY1*NZ1*NEL
-C
-      CALL ADD3S2 (TA,VGRADT1(1,1,1,1,IFIELD-1),
-     $                VGRADT2(1,1,1,1,IFIELD-1),AB1,AB2,N)
-      CALL COPY   (   VGRADT2(1,1,1,1,IFIELD-1),
-     $                VGRADT1(1,1,1,1,IFIELD-1),N)
-      CALL COPY   (   VGRADT1(1,1,1,1,IFIELD-1),
-     $                     BQ(1,1,1,1,IFIELD-1),N)
-      CALL ADD2S1 (BQ(1,1,1,1,IFIELD-1),TA,AB0,N)
-C
+
+      ab0   = ab(1)
+      ab1   = ab(2)
+      ab2   = ab(3)
+      nel   = nelfld(ifield)
+      n     = lx1*ly1*lz1*nel
+
+      do i=1,n
+         ta=ab1*vgradt1(i,1,1,1,ifield-1)+ab2*vgradt2(i,1,1,1,ifield-1)
+         vgradt2(i,1,1,1,ifield-1)=vgradt1(i,1,1,1,ifield-1)
+         vgradt1(i,1,1,1,ifield-1)=bq     (i,1,1,1,ifield-1)
+         bq     (i,1,1,1,ifield-1)=bq     (i,1,1,1,ifield-1)*ab0+ta
+      enddo
+
       return
       end
 c-----------------------------------------------------------------------
-      subroutine makebdq
+      subroutine makebdq1 ! did not exist befroe 11/14/16
 C-----------------------------------------------------------------------
 C
 C     Add contributions to F from lagged BD terms.
@@ -275,31 +275,65 @@ C-----------------------------------------------------------------------
 
       nel   = nelfld(ifield)
       n     = nx1*ny1*nz1*nel
-
    
       const = 1./dt
-c      call cmult2(h2,vtrans(1,1,1,1,ifield),const,n)
       do i=1,n
          h2(i)=const*vtrans(i,1,1,1,ifield)
          tb(i)=bd(2)*bm1(i,1,1,1)*t(i,1,1,1,ifield-1)
       enddo
 
-      DO 100 ILAG=2,NBD
-         IF (IFGEOM) THEN
-            CALL COL3 (TA,BM1LAG(1,1,1,1,ILAG-1),
-     $                    TLAG  (1,1,1,1,ILAG-1,IFIELD-1),N)
-         ELSE
-            CALL COL3 (TA,BM1,
-     $                    TLAG  (1,1,1,1,ILAG-1,IFIELD-1),N)
-         ENDIF
-         CALL CMULT (TA,BD(ILAG+1),N)
-         CALL ADD2  (TB,TA,N)
- 100  CONTINUE
-
-c      do i=1,n
-c         bq(i,1,1,1,ifield-1) = bq(i,1,1,1,ifield-1) + tb(i)*h2(i)
-c      enddo
+      do 100 ilag=2,nbd
+         if (ifgeom) then
+            call col3 (ta,bm1lag(1,1,1,1,ilag-1),
+     $                    tlag  (1,1,1,1,ilag-1,ifield-1),n)
+         else
+            call col3 (ta,bm1,
+     $                    tlag  (1,1,1,1,ilag-1,ifield-1),n)
+         endif
+         call cmult (ta,bd(ilag+1),n)
+         call add2  (tb,ta,n)
+ 100  continue
       call addcol3 (bq(1,1,1,1,ifield-1),tb,h2,n)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine makebdq
+C-----------------------------------------------------------------------
+C
+C     Add contributions to F from lagged BD terms.
+C
+C-----------------------------------------------------------------------
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter (lt=lx1*ly1*lz1*lelt)
+
+
+      nel   = nelfld(ifield)
+      n     = nx1*ny1*nz1*nel
+   
+      const = 1./dt
+
+      if (nbd.eq.2) then
+       if (ifgeom) then
+        do i=1,n
+         h2=const*vtrans(i,1,1,1,ifield)
+         tb=bd(2)*bm1(i,1,1,1)*t(i,1,1,1,ifield-1)
+         ta=bm1lag(i,1,1,1,1)*tlag(i,1,1,1,1,ifield-1)
+         bq(i,1,1,1,ifield-1)=bq(i,1,1,1,ifield-1)+h2*(tb+ta*bd(3))
+        enddo
+       else
+        do i=1,n
+         h2=const*vtrans(i,1,1,1,ifield)
+         tb=bd(2)*bm1(i,1,1,1)*t(i,1,1,1,ifield-1)
+         ta=bm1(i,1,1,1)*tlag(i,1,1,1,1,ifield-1)
+         bq(i,1,1,1,ifield-1)=bq(i,1,1,1,ifield-1)+h2*(tb+ta*bd(3))
+        enddo
+       endif
+      else
+        call makebdq1
+      endif
 
       return
       end
@@ -482,6 +516,127 @@ c      if (iftmsh(ifield)) imesh=2
       return
       end
 c-----------------------------------------------------------------------
+      subroutine set_eta_alpha2 ! was in hmholtz.f0, now here
+
+c     Set up required dg terms, e.g., alpha, eta, etc.
+c     Face weight: .5 interior, 1. boundary
+
+      include 'SIZE'
+      include 'TOTAL'
+      common /mysedg/ eta
+
+
+      integer e,f,pf
+
+      nface = 2*ndim
+      call dsset(nx1,ny1,nz1)
+
+      eta =  5         !   Semi-optimized value, single domain
+
+      do e=1,nelfld(ifield)
+      do f=1,nface
+
+         pf     = eface1(f)
+         js1    = skpdat(1,pf)
+         jf1    = skpdat(2,pf)
+         jskip1 = skpdat(3,pf)
+         js2    = skpdat(4,pf)
+         jf2    = skpdat(5,pf)
+         jskip2 = skpdat(6,pf)
+
+         i = 0
+         do j2=js2,jf2,jskip2
+         do j1=js1,jf1,jskip1
+            i = i+1
+            a = area(i,1,f,e)  ! Check Fydkowski notes 
+            a = a*a*fw(f,e)    ! For ds_avg used below, plus quad weight
+            etalph(i,f,e) = eta*(a/bm1(j1,j2,1,e))
+c           write(6,*) i,j1,j2,e,f,a,etalph(i,f,e)
+         enddo
+         enddo
+      enddo
+      enddo
+
+      call gs_op (dg_hndlx,etalph,1,1,0)  ! 1 ==> +
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine fwght(msk1,mult) ! was in hmholtz.f0
+      include 'SIZE'
+      include 'TOTAL'
+      parameter (lx=lx1*ly1*lz1)
+      real msk1(lx1,ly1,lz1),mult(lx1,ly1,lz1,1)
+      integer e,f,pf
+
+      parameter(lf=lx1*lz1*2*ldim*lelt)
+      common /scrdg/uf(lx1*lz1,2*ldim,lelt)
+
+
+
+      do i=1,lf
+         uf(i,1,1)=1.
+      enddo
+      call gs_op (dg_hndlx,uf,1,1,0)  ! 1 ==> +
+
+      nface = 2*ldim
+      do e=1,nelt
+      do f=1,nface
+         fw(f,e) = 1                        ! Boundary
+         if (uf(1,f,e).gt.1.1) fw(f,e)=0.5  ! Interior
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine dg_setup ! was in hmholtz.f0
+      include 'SIZE'
+      include 'TOTAL'
+
+      common /ivrtx/ vertex ((2**ldim)*lelt)
+      common /ctmp1/ qs(lx1*ly1*lz1*lelt)
+      integer vertex
+
+      if (ifdg) then
+
+        call setup_dg_gs(dg_hndlx,nx1,ny1,nz1,nelt,nelgt,vertex)
+        call dg_set_fc_ptr
+
+        param(59)=1
+        call geom_reset(1)
+        call set_unr
+      endif
+
+
+      n = nx1*ny1*nz1*nelt
+      call invers2(binvdg,bm1,n)
+
+      call set_dg_wgts ! was non-existent
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine dg_setup2(mask) ! was in hmholtz.f0
+      include 'SIZE'
+      include 'TOTAL'
+
+      real mask(1)
+      common /ctmp0/ qs(lx1*ly1*lz1*lelt)
+
+      integer ifld_last
+      save    ifld_last
+      data    ifld_last /0/
+
+      if (ifield.eq.ifld_last) return
+      ifld_last = ifield
+
+      call fwght  (qs,mask)  ! qs is work array
+      call set_eta_alpha2     ! Set eta/h
+
+      return
+      end
+c-----------------------------------------------------------------------
       subroutine cdscal_dg (igeom)
 C
 C     Solve the convection-diffusion equation for passive scalar IPSCAL
@@ -497,6 +652,8 @@ C
 
       include 'ORTHOT'  ! This must be fixed
 
+      call dg_setup2(tmask(1,1,1,1,ifield-1))
+
       nel = nelfld(ifield)
       n   = nx1*ny1*nz1*nel
 
@@ -507,13 +664,14 @@ C
 
       else                   ! new geometry at t^n
 
+
          if (ifprint.and.ifield.eq.2.and.nio.eq.0) 
      $      write (6,*) ' Temperature/Passive scalar solution'
 
          if1=ifield-1
-         write(name4,1) if1-1
+         write(name4t,1) if1-1
     1    format('PS',i2)
-         if(ifield.eq.2) write(name4,'(A4)') 'TEMP'
+         if(ifield.eq.2) write(name4t,'(A4)') 'TEMP'
  
          isd = 1
          if (ifaxis.and.ifaziv.and.ifield.eq.2) isd = 2
@@ -522,38 +680,23 @@ c        if (ifaxis.and.ifmhd) isd = 2 !This is a problem if T is to be T!
          intype = 0
          if (iftran) intype = -1
          call sethlm  (h1,h2,intype)
-         call bcneusc (ta,-1)
-         call add2    (h2,ta,n)
-         call bcdirsc (t(1,1,1,1,ifield-1))
-         call axhelm  (ta,t(1,1,1,1,ifield-1),h1,h2,imesh,isd)
-         call sub3    (tb,bq(1,1,1,1,ifield-1),ta,n)
-         call bcneusc (ta,1)
-         call add2    (tb,ta,n)
 
+c        call bcneusc (ta,-1)     !! Not Yet supported for DG
+c        call add2    (h2,ta,n)   !! Not Yet supported for DG
 
-c        if (ifdg) then
-c           do i=1,n                        ! Quick Hack, 10/10/15, pff.
-c              s = h2(i)*bm1(i,1,1,1)
-c              ta(i)=tb(i)/s
-c              ta(i)=tmask(i,1,1,1,ifield-1)*tb(i)/s
-c           enddo
-c        elseif (iftmsh(ifield)) then
+         call rzero             (tb,n)
+         call bcdirsc           (   t (1,1,1,1,ifield-1))
+         call conv_bdry_dg_weak (tb,t (1,1,1,1,ifield-1)) ! in convect.f
+         call hxdg_surfa        (tb,t (1,1,1,1,ifield-1),h1,h2)
+         call add2              (tb,bq(1,1,1,1,ifield-1),n)
 
-         if (iftmsh(ifield)) then
-           call hsolve  (name4,ta,tb,h1,h2 
+c        call bcneusc (ta,1)      ! ALSO NOT YET SUPPORTED
+c        call add2    (tb,ta,n)
+
+         call hmholtz_dg(name4t,t(1,1,1,1,ifield-1),tb,h1,h2 
      $                   ,tmask(1,1,1,1,ifield-1)
-     $                   ,tmult(1,1,1,1,ifield-1)
-     $                   ,imesh,tolht(ifield),nmxh,1
-     $                   ,approx,napprox,bintm1)
-         else
-           call hsolve  (name4,ta,tb,h1,h2 
-     $                   ,tmask(1,1,1,1,ifield-1)
-     $                   ,tmult(1,1,1,1,ifield-1)
-     $                   ,imesh,tolht(ifield),nmxh,1
-     $                   ,approx,napprox,binvm1)
-         endif 
-
-         call add2    (t(1,1,1,1,ifield-1),ta,n)
+     $                   ,tolht(ifield),nmxh)
+         return
 
       endif  ! End of IGEOM branch.
 

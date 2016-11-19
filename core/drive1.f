@@ -185,11 +185,12 @@ c-----------------------------------------------------------------------
       endif
 
       isyc  = 0
-      itime = 0
       if(ifsync) isyc=1
+      itime = 0
+#ifdef TIMER
       itime = 1
+#endif
       call nek_comm_settings(isyc,itime)
-
       call nek_comm_startstat()
 
       istep  = 0
@@ -260,14 +261,18 @@ c-----------------------------------------------------------------------
                call geneig  (igeom)
          endif
 
-         if (ifheat)               call heat (igeom)
+         if (ifheat) then
+             call heat(igeom)
+         endif
 
          if (igeom.eq.2) then  
                                    call setprop
             if (iflomach)          call qthermal(.true.,.false.,dummy)
          endif
 
-         if (ifflow)               call fluid         (igeom)
+         if (ifflow) then
+             call fluid(igeom)
+         endif
          if (ifmvbd)               call meshv         (igeom)
          if (param(103).gt.0)      call q_filter      (param(103))
                                    call setup_convect (igeom)     ! Save convective velocity _after_ filter 

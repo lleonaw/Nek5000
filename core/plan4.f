@@ -27,9 +27,6 @@ C
      $ ,             RESPR (LX2,LY2,LZ2,LELV)
       common /scrvh/ h1    (lx1,ly1,lz1,lelv)
      $ ,             h2    (lx1,ly1,lz1,lelv)
-      common /vext/  vx_e  (lx1*ly1*lz1*lelv)
-     $ ,             vy_e  (lx1,ly1,lz1,lelv)
-     $ ,             vz_e  (lx2,ly2,lz2,lelv)
  
       REAL           DPR   (LX2,LY2,LZ2,LELV)
       EQUIVALENCE   (DPR,DV1)
@@ -76,11 +73,11 @@ C        first, compute pressure
          call invers2  (h1,vtrans,ntot1)
          call rzero    (h2,ntot1)
          call ctolspl  (tolspl,respr)
-         napprox(1) = laxt
+         napproxp(1) = laxtp
          call hsolve   ('PRES',dpr,respr,h1,h2 
      $                        ,pmask,vmult
      $                        ,imesh,tolspl,nmxh,1
-     $                        ,approx,napprox,binvm1)
+     $                        ,approxp,napproxp,binvm1)
          call add2    (pr,dpr,ntot1)
          call ortho   (pr)
 
@@ -160,10 +157,6 @@ c
       COMMON /SCRMG/ W1    (LX1*LY1*LZ1,LELV)
      $ ,             W2    (LX1*LY1*LZ1,LELV)
      $ ,             W3    (LX1*LY1*LZ1,LELV)
-      common /vext/  vx_e  (lx1*ly1*lz1*lelv)
-     $ ,             vy_e  (lx1,ly1,lz1,lelv)
-     $ ,             vz_e  (lx2,ly2,lz2,lelv)
- 
 
       common /scruz/         sij (lx1*ly1*lz1,6,lelv)
       parameter (lr=lx1*ly1*lz1)
