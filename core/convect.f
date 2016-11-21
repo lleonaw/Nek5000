@@ -1426,7 +1426,7 @@ c     Apply convecting field c(1,ndim) to scalar field u(1).
       beta_u = 0.25 ! 1=full upwind; 0=central flux
       beta_u = 1.00 ! 1=full upwind; 0=central flux
       beta_u = param(98)
-      if (istep.le.5.and.nio.eq.0) write(6,*) beta_u,' dg upwind'
+c     if (istep.le.5.and.nio.eq.0) write(6,*) beta_u,' dg upwind'
 
       nface = 2*ndim
       nxz   = nx1*nz1
@@ -1751,7 +1751,7 @@ c     Apply convecting field c(1,ndim) to scalar field u(1).
       beta_u = 0.25 ! 1=full upwind; 0=central flux
       beta_u = 1.00 ! 1=full upwind; 0=central flux
       beta_u = param(98)
-      if (istep.le.5.and.nio.eq.0) write(6,*) beta_u,' dg upwind'
+c     if (istep.le.5.and.nio.eq.0) write(6,*) beta_u,' dg upwind'
 
       nface = 2*ndim
       nxz   = lx1*lz1
@@ -1983,7 +1983,7 @@ c     Apply convecting field c(1,ndim) to scalar field u(1).
       beta_u = 0.25 ! 1=full upwind; 0=central flux
       beta_u = 0.00 ! 1=full upwind; 0=central flux
       beta_u = 1.00 ! 1=full upwind; 0=central flux
-      if (istep.le.5.and.nio.eq.0) write(6,*) beta_u,' dg upwind'
+c     if (istep.le.5.and.nio.eq.0) write(6,*) beta_u,' dg upwind'
 
       nface = 2*ldim
       nxz   = lx1*lz1
