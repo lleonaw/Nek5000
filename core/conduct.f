@@ -640,14 +640,19 @@ C     Solve the convection-diffusion equation for passive scalar IPSCAL
 C
       include 'SIZE'
       include 'TOTAL'
+
+      include 'ORTHOT'  ! This must be fixed
+
       common  /cprint/ ifprint
       logical          ifprint,ifconv
 
       parameter (lt=lx1*ly1*lz1*lelt)
       common /scrns/ ta(lt),tb(lt)
-      common /scrvh/ h1(lt),h2(lt)
+      common /scrvh/ h1(lt),h2(lt),h3(lt)
+      logical ifh3
 
-      include 'ORTHOT'  ! This must be fixed
+      ifh3 = .false.
+
 
       call dg_setup2(tmask(1,1,1,1,ifield-1))
 
@@ -685,36 +690,13 @@ c        call add2    (h2,ta,n)   !! Not Yet supported for DG
          call rzero             (tb,n)
          call bcdirsc           (   t (1,1,1,1,ifield-1))
          call conv_bdry_dg_weak (tb,t (1,1,1,1,ifield-1))
-         call hxdg_surfa        (tb,t (1,1,1,1,ifield-1),h1,h2)
+         call hxdg_surfa        (tb,t (1,1,1,1,ifield-1),h1,h2,h3,ifh3)
          call add2              (tb,bq(1,1,1,1,ifield-1),n)
 
-c        call col3(ta,tb,binvdg,n)
-c        call outpost(ta,ta,ta,ta,ta,'   ')
-
-         write(6,*) istep,time,h1(1),h2(1),'  h1 h2'
-c        write(6,*) istep,time,t(1,1,1,1,1),tb(1),' rq'
-         call hmholtz_dg(name4t,t(1,1,1,1,ifield-1),tb,h1,h2 
+         call hmholtz_dg(name4t,t(1,1,1,1,ifield-1),tb,h1,h2,h3,ifh3 
      $                   ,tmask(1,1,1,1,ifield-1)
      $                   ,tolht(ifield),nmxh)
-         write(6,*) istep,time,tb(1),t(1,1,1,1,1),' rq'
-
-c        call outpost(t,t,t,t,t,'   ')
-c        stop
          return
-
-         if (iftmsh(ifield)) then
-           call hsolve  (name4t,t(1,1,1,1,ifield-1),tb,h1,h2 
-     $                   ,tmask(1,1,1,1,ifield-1)
-     $                   ,tmult(1,1,1,1,ifield-1)
-     $                   ,imesh,tolht(ifield),nmxh,1
-     $                   ,approxt,napproxt,bintm1)
-         else
-           call hsolve  (name4t,t(1,1,1,1,ifield-1),tb,h1,h2 
-     $                   ,tmask(1,1,1,1,ifield-1)
-     $                   ,tmult(1,1,1,1,ifield-1)
-     $                   ,imesh,tolht(ifield),nmxh,1
-     $                   ,approxt,napproxt,binvm1)
-         endif 
 
       endif  ! End of IGEOM branch.
 

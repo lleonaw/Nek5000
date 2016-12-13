@@ -119,10 +119,10 @@ C
       nel=nelt
       if (imesh.eq.1) nel=nelv
 
-      if (ifdg) then
-         call hxdg (au,u,helm1,helm2)
-         return
-      endif
+c     if (ifdg) then
+c        call hxdg (au,u,helm1,helm2)
+c        return
+c     endif
 
       NXY=NX1*NY1
       NYZ=NY1*NZ1
@@ -1508,7 +1508,7 @@ C
       end
 C
 c=======================================================================
-      subroutine cggo_dg(x,f,h1,h2,binv,mask,name,tin,maxit)
+      subroutine cggo_dg(x,f,h1,h2,h3,ifh3,binv,mask,name,tin,maxit)
 C-------------------------------------------------------------------------
 C
 C     Solve the Helmholtz equation, H*U = RHS,
@@ -1520,7 +1520,9 @@ C------------------------------------------------------------------------
       include 'TOTAL'
 
 
-      real x(1),f(1),h1(1),h2(1),binv(1),mask(1)
+      real x(1),f(1),h1(1),h2(1),h3(1),binv(1),mask(1)
+      logical ifh3
+
       parameter        (lg=lx1*ly1*lz1*lelt)
       common /scrcg/ d (lg) , scalar(2)
       common /scrmg/ r (lg) , w (lg) , p (lg) , z (lg)
@@ -1557,8 +1559,8 @@ c     Initialization
       niter = min(maxit,maxcg)
  
       imsh = ifield
-      call setprec(d,h1,h2,imsh,1) !  diag preconditioner
-c     call invers2(d,bm1,n) !  diag preconditioner
+      call setprec_dg (d,h1,h2,h3,ifh3) !  diag preconditioner
+c     call invers2    (d,bm1,n) !  diag preconditioner
  
       call copy (r,f,n)
       call rzero(x,n)
@@ -1607,7 +1609,7 @@ c        call copy(z,r,n)   ! No     preconditioner
          beta = rtz1/rtz2
          if (iter.eq.1) beta=0.0
          call add2s1 (p,z,beta,n)
-         call hxdg   (w,p,h1,h2)
+         call hxdg   (w,p,h1,h2,h3,ifh3)
  
          rho0 = rho
          rho  = glsc2(w,p,n)
@@ -1813,7 +1815,7 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-      subroutine setprec_dg (d,h1,h2,imsh,isd)
+      subroutine setprec_dg (d,h1,h2,h3,ifh3) !  diag preconditioner
 C-------------------------------------------------------------------
 C
 C     Generate diagonal preconditioner for the DG Helmholtz operator.
@@ -1825,6 +1827,8 @@ C-------------------------------------------------------------------
       common /fastmd/ ifdfrm(lelt), iffast(lelt), ifh2, ifsolv
       logical ifdfrm, iffast, ifh2, ifsolv
       real            h1(lx1*ly1*lz1,1), h2(lx1*ly1*lz1,1)
+      real            h3(lx1*ly1*lz1,1)
+      logical ifh3
       real ysm1(ly1)
       integer e,f,pf
 
@@ -1959,6 +1963,11 @@ c       Here, we add DG surface terms (11/06/16)
         do i=1,nxyz
            d(i,1,1,e)=1./(d(i,1,1,e)*h1(i,e)+h2(i,e)*bm1(i,1,1,e))
         enddo
+        if (ifh3) then
+          do i=1,nxyz
+             d(i,1,1,e)=d(i,1,1,e)/(h3(i,e)*h3(i,e))
+          enddo
+        endif
 
  1000 continue ! element loop
 
@@ -1995,7 +2004,7 @@ c     If axisymmetric, add a diagonal term in the radial direction (ISD=2)
       return
       end
 c-----------------------------------------------------------------------
-      subroutine hxdg_surfa(au,u,h1,h2)
+      subroutine hxdg_surfa(au,u,h1,h2,h3,ifh3)
 
 c     Helmholtz matrix-vector product: Au = Au + surface term 
 
@@ -2005,16 +2014,19 @@ c     Helmholtz matrix-vector product: Au = Au + surface term
       parameter (lxyz=lx1*ly1*lz1)
 
       real au(lx1,ly1,lz1,lelt),u(lx1,ly1,lz1,lelt)
-      real h1(lx1,ly1,lz1,lelt),h2(1)
+      real h1(lx1,ly1,lz1,lelt),h2(1),h3(lx1,ly1,lz1,1)
+      logical ifh3
 
       common /ytmp9/ qr(lx1,ly1,lz1),qs(lx1,ly1,lz1),qt(lx1,ly1,lz1)
+      common /ctmp1/ ru(lx1,ly1,lz1)
 
       integer e,f,pf
 
 
       call dsset(nx1,ny1,nz1)
       nface = 2*ndim
-      n     = lx1*ly1*lz1*nelfld(ifield)
+      nxyz  = lx1*ly1*lz1
+      n     = nxyz*nelfld(ifield)
 
       do e=1,nelfld(ifield)
          iflag=0
@@ -2023,6 +2035,8 @@ c     Helmholtz matrix-vector product: Au = Au + surface term
          enddo
          if (iflag.gt.0) then
 
+          if (ifh3) call invcol2(au(1,1,1,e),h3(1,1,1,e),nxyz)
+
           if (ifaxis) call setaxdy(ifrzer(e))
 
           do i=1,lxyz
@@ -2030,6 +2044,13 @@ c     Helmholtz matrix-vector product: Au = Au + surface term
             qs(i,1,1)=0
             qt(i,1,1)=0
           enddo
+          if (ifh3) then
+             do i=1,nxyz
+                ru(i,1,1) = u(i,1,1,e)*h3(i,1,1,e)
+             enddo
+          else
+             call copy(ru,u(1,1,1,e),nxyz)
+          endif
 
           do f=1,nface
            if (fw(f,e).gt.0.6) then
@@ -2049,8 +2070,8 @@ c     Helmholtz matrix-vector product: Au = Au + surface term
              do j2=js2,jf2,jskip2
              do j1=js1,jf1,jskip1
                 i = i+1
-                fwt = fwtbc *       h1(j1,j2,1,e)*u(j1,j2,1,e)
-                et1 = etalph(i,f,e)*h1(j1,j2,1,e)*u(j1,j2,1,e)
+                fwt = fwtbc *       h1(j1,j2,1,e)*ru(j1,j2,1)
+                et1 = etalph(i,f,e)*h1(j1,j2,1,e)*ru(j1,j2,1)
                 qr(j1,j2,1) = qr(j1,j2,1)-fwt*unr(i,f,e)
                 qs(j1,j2,1) = qs(j1,j2,1)-fwt*uns(i,f,e)
                 qt(j1,j2,1) = qt(j1,j2,1)-fwt*unt(i,f,e)
@@ -2060,33 +2081,41 @@ c     Helmholtz matrix-vector product: Au = Au + surface term
            endif
           enddo
 
-          call gradrta(au(1,1,1,e),qr,qs,qt        ! NOTE FIX in gradr()! 3D!
+          call gradrta(au(1,1,1,e),qr,qs,qt
      $        ,dxtm1,dym1,dzm1,nx1,ny1,nz1,if3d)
+          if (ifh3) call col2(au(1,1,1,e),h3(1,1,1,e),nxyz)
          endif
       enddo
 
       return
       end
 c-----------------------------------------------------------------------
-      subroutine hxdg (au,u,h1,h2)
+      subroutine hxdg (au,u,h1,h2,h3,ifh3)
 
-c     Helmholtz matrix-vector product: Au = h1*[A]u + h2*[B]u
+c     When ifh3 = .false.:
+c      Helmholtz matrix-vector product: Hu = [A(h1)]u + h2*[B]u
+c
+c     When ifh3 = .true.:
+c      Helmholtz matrix-vector product: Hu = h3*( [A(h1)]*h3 + h2*[B] ) u
 
       include 'SIZE'
       include 'TOTAL'
 
       parameter(lxyz=lx1*ly1*lz1)
       real au(lx1,ly1,lz1,1),u(lx1,ly1,lz1,1),h1(lx1,ly1,lz1,1),h2(1)
+      real h3(lx1,ly1,lz1,1)
+      logical ifh3
 
       common /ctmp0/ w(2*lx1*lz1*2*ldim*lelt)
       common /ctmp1/ ur(lx1,ly1,lz1,lelt),us(lx1,ly1,lz1,lelt)
      $                                   ,ut(lx1,ly1,lz1,lelt)
       common /ytmp9/ qr(lx1,ly1,lz1),qs(lx1,ly1,lz1),qt(lx1,ly1,lz1)
-      common /ytmp0/ uf(lx1*lz1,2*ldim,lelt,2)
+      common /ytmp0/ uf(lx1*lz1,2*ldim,lelt,2),ru(lx1,ly1,lz1)
 
       integer e,f,pf
 
-      n     = lx1*ly1*lz1*nelfld(ifield)
+      nxyz  = lx1*ly1*lz1
+      n     = nxyz*nelfld(ifield)
       nface = 2*ndim
 
       call dsset(nx1,ny1,nz1)
@@ -2097,8 +2126,13 @@ c     Helmholtz matrix-vector product: Au = h1*[A]u + h2*[B]u
 
          if (ifaxis) call setaxdy(ifrzer(e))
 
-         call gradr(ur(1,1,1,e),us(1,1,1,e),ut(1,1,1,e) ! NOTE FIX in gradr()! 3D!
-     $             ,u (1,1,1,e),dxm1,dytm1,dztm1,nx1,ny1,nz1,if3d)
+         if (ifh3) then 
+           call col3 (ru,u(1,1,1,e),h3(1,1,1,e),nxyz)
+         else
+           call copy (ru,u(1,1,1,e)        ,nxyz)
+         endif
+         call gradr(ur(1,1,1,e),us(1,1,1,e),ut(1,1,1,e)
+     $             ,ru,dxm1,dytm1,dztm1,nx1,ny1,nz1,if3d)
 
          do f=1,nface
            pf     = eface1(f)
@@ -2114,7 +2148,7 @@ c     Helmholtz matrix-vector product: Au = h1*[A]u + h2*[B]u
            do j1=js1,jf1,jskip1
               i = i+1
 c             Normally, we'd store this as a 2-vector: uf(2,...)
-              uf(i,f,e,1) = u(j1,j2,1,e)*h1(j1,j2,1,e)
+              uf(i,f,e,1) = ru(j1,j2,1)*h1(j1,j2,1,e)
               uf(i,f,e,2) = (unr(i,f,e)*ur(j1,j2,1,e)
      $                    +  uns(i,f,e)*us(j1,j2,1,e)
      $                    +  unt(i,f,e)*ut(j1,j2,1,e))*h1(j1,j2,1,e)
@@ -2168,8 +2202,10 @@ c             Normally, we'd store this as a 2-vector: uf(2,...)
 
          enddo
 
-         call gradrta(au(1,1,1,e),qr,qs,qt        ! NOTE FIX in gradr()! 3D!
-     $      ,dxtm1,dym1,dzm1,nx1,ny1,nz1,if3d)
+         call gradrta(au(1,1,1,e),qr,qs,qt
+     $        ,dxtm1,dym1,dzm1,nx1,ny1,nz1,if3d)
+
+         if (ifh3) call col2(au(1,1,1,e),h3(1,1,1,e),nxyz)
       enddo
 
       return
