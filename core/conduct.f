@@ -561,19 +561,18 @@ c           write(6,*) i,j1,j2,e,f,a,etalph(i,f,e)
       return
       end
 c-----------------------------------------------------------------------
-      subroutine fwght(msk1,mult)
+      subroutine fwght(mult)
       include 'SIZE'
       include 'TOTAL'
       parameter (lx=lx1*ly1*lz1)
-      real msk1(lx1,ly1,lz1),mult(lx1,ly1,lz1,1)
-      integer e,f,pf
+      real      mult(lx1,ly1,lz1,1)
+      integer   e,f,pf,nf
 
       parameter(lf=lx1*lz1*2*ldim*lelt)
-      common /scrdg/uf(lx1*lz1,2*ldim,lelt)
+      common /scrdg/ uf(lx1*lz1,2*ldim,lelt)
 
-
-
-      do i=1,lf
+      nf=lx1*lz1*2*ldim*nelt
+      do i=1,nf
          uf(i,1,1)=1.
       enddo
       call gs_op (dg_hndlx,uf,1,1,0)  ! 1 ==> +
@@ -581,7 +580,7 @@ c-----------------------------------------------------------------------
       nface = 2*ldim
       do e=1,nelt
       do f=1,nface
-         fw(f,e) = 1                        ! Boundary
+         fw(f,e) = 1.                       ! Boundary
          if (uf(1,f,e).gt.1.1) fw(f,e)=0.5  ! Interior
       enddo
       enddo
@@ -621,7 +620,6 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
 
       real mask(1)
-      common /ctmp0/ qs(lx1*ly1*lz1*lelt)
 
       integer ifld_last
       save    ifld_last
@@ -630,7 +628,7 @@ c-----------------------------------------------------------------------
       if (ifield.eq.ifld_last) return
       ifld_last = ifield
 
-      call fwght  (qs,mask)  ! qs is work array
+      call fwght  (mask)      ! work array in scrdg
       call set_eta_alpha2     ! Set eta/h
 
       return

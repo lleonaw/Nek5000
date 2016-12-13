@@ -1564,7 +1564,7 @@ c           Interpolate z+ and z- into fine mesh, translate to r-s-t coords
                l = l+1
                w = wd(i)*wd(j)*wd(k)
                do ii=1,9
-                  rx(l,ii,e) = w*rx(l,ii,e)
+                  rx(l,ii,e) = w*rx(l,ii,e) ! with mass
                enddo
             enddo
             enddo
