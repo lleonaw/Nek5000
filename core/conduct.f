@@ -653,6 +653,7 @@ C
 
       ifh3 = .false.
 
+      call set_bctype(ifield)
 
       call dg_setup2(tmask(1,1,1,1,ifield-1))
 
@@ -699,6 +700,36 @@ c        call add2    (h2,ta,n)   !! Not Yet supported for DG
          return
 
       endif  ! End of IGEOM branch.
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_bctype(ifld)
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer   e,f,pf,nf
+      
+      nface = 2*ldim
+      do e=1,nelfld(ifld)
+      do f=1,nface
+
+        bctype(f,e,ifld) = 'E  ' ! Elemental
+        if (ifld.ge.2) then
+           if (cbc(e,f,ifld).eq.'P  ') bctype(f,e,ifld) = 'P  ' ! Periodic
+           if (cbc(e,f,ifld).eq.'T  ') bctype(f,e,ifld) = 'd  ' ! Dirichlet
+           if (cbc(e,f,ifld).eq.'t  ') bctype(f,e,ifld) = 'd  ' ! Dirichlet
+           if (cbc(e,f,ifld).eq.'I  ') bctype(f,e,ifld) = 'N  ' ! H. Neumann
+           if (cbc(e,f,ifld).eq.'O  ') bctype(f,e,ifld) = 'N  ' ! H. Neumann
+           if (cbc(e,f,ifld).eq.'f  ') bctype(f,e,ifld) = 'n  ' ! I. Neumann
+           if (cbc(e,f,ifld).eq.'C  ') bctype(f,e,ifld) = 'r  ' ! Robin
+           if (cbc(e,f,ifld).eq.'c  ') bctype(f,e,ifld) = 'r  ' ! Robin
+        else
+           call exitti('WHY calling with ifield??$',ifld)
+        endif
+      enddo
+      enddo
 
       return
       end

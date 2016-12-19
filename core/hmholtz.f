@@ -1477,7 +1477,7 @@ c
       return
       end
 c-----------------------------------------------------------------------
-      subroutine hmholtz_dg(name,u,rhs,h1,h2,mask,tol,maxit)
+      subroutine hmholtz_dg(name,u,rhs,h1,h2,h3,ifh3,mask,tol,maxit)
       include 'SIZE'
       include 'CTIMER'
       include 'INPUT'
@@ -1490,16 +1490,18 @@ C
       real           rhs  (lx1,ly1,lz1,1)
       real           h1   (lx1,ly1,lz1,1)
       real           h2   (lx1,ly1,lz1,1)
+      real           h3   (lx1,ly1,lz1,1)
       real           mask (lx1,ly1,lz1,1)
+      logical ifh3
 
       icalld=icalld+1
       nhmhz=icalld
       etime1=dnekclock()
 
       if (ifield.eq.2) then
-         call cggo_dg (u,rhs,h1,h2,bintm1,mask,name,tol,maxit)
+         call cggo_dg (u,rhs,h1,h2,h3,ifh3,bintm1,mask,name,tol,maxit)
       else
-         call cggo_dg (u,rhs,h1,h2,binvm1,mask,name,tol,maxit)
+         call cggo_dg (u,rhs,h1,h2,h3,ifh3,binvm1,mask,name,tol,maxit)
       endif
 
       thmhz=thmhz+(dnekclock()-etime1)
@@ -1823,11 +1825,11 @@ C
 C-------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
+      parameter(lxyz=lx1*ly1*lz1)
       real            d(lx1,ly1,lz1,1)
       common /fastmd/ ifdfrm(lelt), iffast(lelt), ifh2, ifsolv
       logical ifdfrm, iffast, ifh2, ifsolv
-      real            h1(lx1*ly1*lz1,1), h2(lx1*ly1*lz1,1)
-      real            h3(lx1*ly1*lz1,1)
+      real            h1(lxyz,1),h2(lxyz,1),h3(lxyz,1)
       logical ifh3
       real ysm1(ly1)
       integer e,f,pf
@@ -1960,11 +1962,11 @@ c       Here, we add DG surface terms (11/06/16)
          enddo
         endif
 
-        do i=1,nxyz
+        do i=1,lxyz
            d(i,1,1,e)=1./(d(i,1,1,e)*h1(i,e)+h2(i,e)*bm1(i,1,1,e))
         enddo
         if (ifh3) then
-          do i=1,nxyz
+          do i=1,lxyz
              d(i,1,1,e)=d(i,1,1,e)/(h3(i,e)*h3(i,e))
           enddo
         endif
@@ -2000,92 +2002,6 @@ c     If axisymmetric, add a diagonal term in the radial direction (ISD=2)
          call invcol1 (d,n)
 
       endif
-
-      return
-      end
-c-----------------------------------------------------------------------
-      subroutine hxdg_surfa(au,u,h1,h2,h3,ifh3)
-
-c     Helmholtz matrix-vector product: Au = Au + surface term 
-
-      include 'SIZE'
-      include 'TOTAL'
-
-      parameter (lxyz=lx1*ly1*lz1)
-
-      real au(lx1,ly1,lz1,lelt),u(lx1,ly1,lz1,lelt)
-      real h1(lx1,ly1,lz1,lelt),h2(1),h3(lx1,ly1,lz1,1)
-      logical ifh3
-
-      common /ytmp9/ qr(lx1,ly1,lz1),qs(lx1,ly1,lz1),qt(lx1,ly1,lz1)
-      common /ctmp1/ ru(lx1,ly1,lz1)
-
-      integer e,f,pf
-
-
-      call dsset(nx1,ny1,nz1)
-      nface = 2*ndim
-      nxyz  = lx1*ly1*lz1
-      n     = nxyz*nelfld(ifield)
-
-      do e=1,nelfld(ifield)
-         iflag=0
-         do f=1,nface
-           if (fw(f,e).gt.0.6) iflag=1
-         enddo
-         if (iflag.gt.0) then
-
-          if (ifh3) call invcol2(au(1,1,1,e),h3(1,1,1,e),nxyz)
-
-          if (ifaxis) call setaxdy(ifrzer(e))
-
-          do i=1,lxyz
-            qr(i,1,1)=0
-            qs(i,1,1)=0
-            qt(i,1,1)=0
-          enddo
-          if (ifh3) then
-             do i=1,nxyz
-                ru(i,1,1) = u(i,1,1,e)*h3(i,1,1,e)
-             enddo
-          else
-             call copy(ru,u(1,1,1,e),nxyz)
-          endif
-
-          do f=1,nface
-           if (fw(f,e).gt.0.6) then
-             pf     = eface1(f)
-             js1    = skpdat(1,pf)
-             jf1    = skpdat(2,pf)
-             jskip1 = skpdat(3,pf)
-             js2    = skpdat(4,pf)
-             jf2    = skpdat(5,pf)
-             jskip2 = skpdat(6,pf)
-
-             fwtbc=1.
-             if (cbc(f,e,ifield).eq.'O  '.or.cbc(f,e,ifield).eq.'I  ') 
-     $          fwtbc=0
-
-             i = 0
-             do j2=js2,jf2,jskip2
-             do j1=js1,jf1,jskip1
-                i = i+1
-                fwt = fwtbc *       h1(j1,j2,1,e)*ru(j1,j2,1)
-                et1 = etalph(i,f,e)*h1(j1,j2,1,e)*ru(j1,j2,1)
-                qr(j1,j2,1) = qr(j1,j2,1)-fwt*unr(i,f,e)
-                qs(j1,j2,1) = qs(j1,j2,1)-fwt*uns(i,f,e)
-                qt(j1,j2,1) = qt(j1,j2,1)-fwt*unt(i,f,e)
-                au(j1,j2,1,e) = au(j1,j2,1,e)+et1*fwtbc
-             enddo
-             enddo
-           endif
-          enddo
-
-          call gradrta(au(1,1,1,e),qr,qs,qt
-     $        ,dxtm1,dym1,dzm1,nx1,ny1,nz1,if3d)
-          if (ifh3) call col2(au(1,1,1,e),h3(1,1,1,e),nxyz)
-         endif
-      enddo
 
       return
       end
@@ -2175,9 +2091,11 @@ c             Normally, we'd store this as a 2-vector: uf(2,...)
 
          do f=1,nface
 
-           fwtbc=1.
-           if (cbc(f,e,ifield).eq.'O  '.or.cbc(f,e,ifield).eq.'I  ') 
-     $        fwtbc=0
+          fwtbc=1.
+          if (bctype(f,e,ifield).eq.'N  '              ! Homogeneous Neumann
+     $    .or.bctype(f,e,ifield).eq.'n  ') fwtbc=0     ! Inhomogeneous Neumann
+          if (fwtbc.gt.0) then
+
            pf     = eface1(f)
            js1    = skpdat(1,pf)
            jf1    = skpdat(2,pf)
@@ -2199,6 +2117,7 @@ c             Normally, we'd store this as a 2-vector: uf(2,...)
      $                          + etalph(i,f,e)*uf(i,f,e,1)*fwtbc
            enddo
            enddo
+          endif
 
          enddo
 
@@ -2206,6 +2125,165 @@ c             Normally, we'd store this as a 2-vector: uf(2,...)
      $        ,dxtm1,dym1,dzm1,nx1,ny1,nz1,if3d)
 
          if (ifh3) call col2(au(1,1,1,e),h3(1,1,1,e),nxyz)
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine hxdg_surfa(au,u,h1,h2,h3,ifh3)
+
+c     Helmholtz matrix-vector product: Au = Au + surface term 
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter (lxyz=lx1*ly1*lz1)
+
+      real au(lx1,ly1,lz1,lelt),u(lx1,ly1,lz1,lelt)
+      real h1(lx1,ly1,lz1,lelt),h2(1),h3(lx1,ly1,lz1,1)
+      logical ifh3
+
+      common /ytmp9/ qr(lx1,ly1,lz1),qs(lx1,ly1,lz1),qt(lx1,ly1,lz1)
+      common /ctmp1/ ru(lx1,ly1,lz1)
+
+      integer e,f,pf
+
+      call dsset(nx1,ny1,nz1)
+      nface = 2*ndim
+      nxyz  = lx1*ly1*lz1
+      n     = nxyz*nelfld(ifield)
+
+      do e=1,nelfld(ifield)
+         iflag=0
+         do f=1,nface
+           if (fw(f,e).gt.0.6) iflag=1  !! Implies face is on boundary
+         enddo
+         if (iflag.gt.0) then
+
+          if (ifh3) call invcol2(au(1,1,1,e),h3(1,1,1,e),nxyz)
+
+          if (ifaxis) call setaxdy(ifrzer(e))
+
+          do i=1,lxyz
+            qr(i,1,1)=0
+            qs(i,1,1)=0
+            qt(i,1,1)=0
+          enddo
+          if (ifh3) then
+             do i=1,lxyz
+                ru(i,1,1) = u(i,1,1,e)*h3(i,1,1,e)
+             enddo
+          else
+             call copy(ru,u(1,1,1,e),nxyz)
+          endif
+
+          do f=1,nface
+           if (fw(f,e).gt.0.6) then
+             pf     = eface1(f)
+             js1    = skpdat(1,pf)
+             jf1    = skpdat(2,pf)
+             jskip1 = skpdat(3,pf)
+             js2    = skpdat(4,pf)
+             jf2    = skpdat(5,pf)
+             jskip2 = skpdat(6,pf)
+
+             fwtbc=1.
+             if (bctype(f,e,ifield).eq.'N  '              ! Homogeneous Neumann
+     $       .or.bctype(f,e,ifield).eq.'n  ') fwtbc=0     ! Inhomogeneous Neumann
+             if (fwtbc.gt.0) then
+
+               i = 0
+               do j2=js2,jf2,jskip2
+               do j1=js1,jf1,jskip1
+                  i = i+1
+                  fwt = fwtbc *       h1(j1,j2,1,e)*ru(j1,j2,1)
+                  et1 = etalph(i,f,e)*h1(j1,j2,1,e)*ru(j1,j2,1)
+                  qr(j1,j2,1) = qr(j1,j2,1)-fwt*unr(i,f,e)
+                  qs(j1,j2,1) = qs(j1,j2,1)-fwt*uns(i,f,e)
+                  qt(j1,j2,1) = qt(j1,j2,1)-fwt*unt(i,f,e)
+                  au(j1,j2,1,e) = au(j1,j2,1,e)+et1*fwtbc
+               enddo
+               enddo
+             endif
+           endif
+          enddo
+
+          call gradrta(au(1,1,1,e),qr,qs,qt
+     $        ,dxtm1,dym1,dzm1,nx1,ny1,nz1,if3d)
+          if (ifh3) call col2(au(1,1,1,e),h3(1,1,1,e),nxyz)
+         endif
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine hxdg_fluxa(au,g,h1,h2,h3,ifh3)
+
+c                                                          ^
+c     Add to Au := au the surface flux terms g := grad u . n
+c   
+
+
+c     When ifh3 = .false.:
+c      Helmholtz matrix-vector product: Hu = [A(h1)]u + h2*[B]u
+c
+c     When ifh3 = .true.:
+c      Helmholtz matrix-vector product: Hu = h3*( [A(h1)]*h3 + h2*[B] ) u
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      parameter(lxyz=lx1*ly1*lz1)
+      real au(lx1,ly1,lz1,1),gf(lx1*lz1,2*ldim,lelt,2)
+      real h1(lx1,ly1,lz1,1),h2(1),h3(lx1,ly1,lz1,1)
+      logical ifh3
+
+      common /ctmp0/ w(2*lx1*lz1*2*ldim*lelt)
+      common /ctmp1/ ur(lx1,ly1,lz1,lelt),us(lx1,ly1,lz1,lelt)
+     $                                   ,ut(lx1,ly1,lz1,lelt)
+      common /ytmp9/ qr(lx1,ly1,lz1),qs(lx1,ly1,lz1),qt(lx1,ly1,lz1)
+      common /ytmp0/ uf(lx1*lz1,2*ldim,lelt,2),ru(lx1,ly1,lz1)
+
+      integer e,f,pf
+
+      call dsset(nx1,ny1,nz1)
+      nface = 2*ndim
+      nxyz  = lx1*ly1*lz1
+      n     = nxyz*nelfld(ifield)
+
+      do e=1,nelfld(ifield)
+         do f=1,nface
+         if (bctype(f,e,ifield).eq.'n  ') then ! Inhomogeneous Neumann
+           pf     = eface1(f)
+           js1    = skpdat(1,pf)
+           jf1    = skpdat(2,pf)
+           jskip1 = skpdat(3,pf)
+           js2    = skpdat(4,pf)
+           jf2    = skpdat(5,pf)
+           jskip2 = skpdat(6,pf)
+
+           if (ifh3) then
+             i = 0
+             do j2=js2,jf2,jskip2
+             do j1=js1,jf1,jskip1
+                i = i+1
+                au(j1,j2,1,e) = au(j1,j2,1,e)
+     $                       - area(i,1,f,e)*g(i,f,e)*h3(j1,j2,1,e)
+             enddo
+             enddo
+           else
+             i = 0
+             do j2=js2,jf2,jskip2
+             do j1=js1,jf1,jskip1
+                i = i+1
+                au(j1,j2,1,e) = au(j1,j2,1,e)-area(i,1,f,e)*g(i,f,e)
+             enddo
+             enddo
+           endif
+
+
+         endif
+         enddo
       enddo
 
       return

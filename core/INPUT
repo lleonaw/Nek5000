@@ -87,8 +87,9 @@ c
       common /input6/ igroup,object
 
       character*1     ccurve(12,lelt),cdof(6,lelt)
-      character*3     cbc(6,lelt,0:ldimt1), solver_type
-      common /input8/ cbc,ccurve,cdof,solver_type
+      character*3     cbc(6,lelt,0:ldimt1),bctype(6,lelt,0:ldimt1)
+     $                ,solver_type
+      common /input8/ cbc,ccurve,cdof,bctype,solver_type
 
       integer ieact(lelt),neact
       common /input9/ ieact,neact
