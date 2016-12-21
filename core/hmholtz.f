@@ -1525,11 +1525,12 @@ C------------------------------------------------------------------------
       real x(1),f(1),h1(1),h2(1),h3(1),binv(1),mask(1)
       logical ifh3
 
+      parameter (maxcg=900)
+
       parameter        (lg=lx1*ly1*lz1*lelt)
       common /scrcg/ d (lg) , scalar(2)
       common /scrmg/ r (lg) , w (lg) , p (lg) , z (lg)
 
-      parameter (maxcg=900)
       common /tdarray/ diagt(maxcg),upper(maxcg)
       common /iterhm/ niterhm
       character*4 name
@@ -1561,8 +1562,8 @@ c     Initialization
       niter = min(maxit,maxcg)
  
       imsh = ifield
-      call setprec_dg (d,h1,h2,h3,ifh3) !  diag preconditioner
-c     call invers2    (d,bm1,n) !  diag preconditioner
+c     call setprec_dg (d,h1,h2,h3,ifh3) !  diag preconditioner
+      call invers2    (d,bm1,n) !  diag preconditioner
  
       call copy (r,f,n)
       call rzero(x,n)
@@ -1655,6 +1656,7 @@ c
 c     if (n.gt.0) write(6,*) 'quit in cggo'
 c     if (n.gt.0) call exitt
 c     call exitt
+
       return
       end
 c-----------------------------------------------------------------------
@@ -2076,7 +2078,7 @@ c             Normally, we'd store this as a 2-vector: uf(2,...)
       call face_diff (uf,2,dg_hndlx,w) ! difference: e_f - e'_f
 
       do e=1,nelfld(ifield)
-         if (ifaxis) call setaxdy(ifrzer(e))
+c        if (ifaxis) call setaxdy(ifrzer(e))
          do i=1,lxyz
            qr(i,1,1) = (g1m1(i,1,1,e)*ur(i,1,1,e)
      $                 +g4m1(i,1,1,e)*us(i,1,1,e)
@@ -2217,12 +2219,10 @@ c     Helmholtz matrix-vector product: Au = Au + surface term
       return
       end
 c-----------------------------------------------------------------------
-      subroutine hxdg_fluxa(au,gf,h1,h2,h3,ifh3)
-
+      subroutine hxdg_fluxa(au,h1,h2,h3,ifh3)
 c                                                          ^
 c     Add to Au := au the surface flux terms g := grad u . n
 c   
-
 
 c     When ifh3 = .false.:
 c      Helmholtz matrix-vector product: Hu = [A(h1)]u + h2*[B]u
@@ -2232,20 +2232,15 @@ c      Helmholtz matrix-vector product: Hu = h3*( [A(h1)]*h3 + h2*[B] ) u
 
       include 'SIZE'
       include 'TOTAL'
+      include 'NEKUSE'
 
       parameter(lxyz=lx1*ly1*lz1)
-c     real au(lx1,ly1,lz1,1),gf(lx1*lz1,2*ldim,lelt,2)
-      real au(lx1,ly1,lz1,1),gf(lx1*lz1,2*ldim,lelt)
+      real au(lx1,ly1,lz1,1),gf(lx1*lz1,2*ldim,lelt,2)
       real h1(lx1,ly1,lz1,1),h2(1),h3(lx1,ly1,lz1,1)
       logical ifh3
 
-      common /ctmp0/ w(2*lx1*lz1*2*ldim*lelt)
-      common /ctmp1/ ur(lx1,ly1,lz1,lelt),us(lx1,ly1,lz1,lelt)
-     $                                   ,ut(lx1,ly1,lz1,lelt)
-      common /ytmp9/ qr(lx1,ly1,lz1),qs(lx1,ly1,lz1),qt(lx1,ly1,lz1)
-      common /ytmp0/ uf(lx1*lz1,2*ldim,lelt,2),ru(lx1,ly1,lz1)
 
-      integer e,f,pf
+      integer e,f
 
       call dsset(nx1,ny1,nz1)
       nface = 2*ndim
@@ -2253,38 +2248,31 @@ c     real au(lx1,ly1,lz1,1),gf(lx1*lz1,2*ldim,lelt,2)
       n     = nxyz*nelfld(ifield)
 
       do e=1,nelfld(ifield)
-         do f=1,nface
+      do f=1,nface
          if (bctype(f,e,ifield).eq.'n  ') then ! Inhomogeneous Neumann
-           pf     = eface1(f)
-           js1    = skpdat(1,pf)
-           jf1    = skpdat(2,pf)
-           jskip1 = skpdat(3,pf)
-           js2    = skpdat(4,pf)
-           jf2    = skpdat(5,pf)
-           jskip2 = skpdat(6,pf)
+         if (cbc(f,e,ifield).eq.'f  ') then
 
-           if (ifh3) then
-             i = 0
-             do j2=js2,jf2,jskip2
-             do j1=js1,jf1,jskip1
-                i = i+1
-                au(j1,j2,1,e) = au(j1,j2,1,e)
-     $                       - area(i,1,f,e)*gf(i,f,e)*h3(j1,j2,1,e)
-             enddo
-             enddo
-           else
-             i = 0
-             do j2=js2,jf2,jskip2
-             do j1=js1,jf1,jskip1
-                i = i+1
-                au(j1,j2,1,e) = au(j1,j2,1,e)-area(i,1,f,e)*gf(i,f,e)
-             enddo
-             enddo
-           endif
+            eg = lglel(e)
+            ii=0
+            call facind (i0,i1,j0,j1,k0,k1,nx1,ny1,nz1,f)
+            do 200 k=k0,k1
+            do 200 j=j0,j1
+            do 200 i=i0,i1
+               ii=ii+1      
 
+               h31 = 1
+               if (ifh3) h31=h3(i,j,k,e)
 
+               ts = t(i,j,k,e,ifield-1)
+               call nekasgn (i,j,k,e)
+               call userbc  (i,j,k,f,eg)
+
+               au(i,j,k,e) = au(i,j,k,e) + area(ii,1,f,e)*flux*h31
+
+  200       continue
          endif
-         enddo
+         endif
+      enddo
       enddo
 
       return

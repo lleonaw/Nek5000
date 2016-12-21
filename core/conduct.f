@@ -106,8 +106,8 @@ C        Radiation case, smooth convergence, avoid flip-flop (ER).
 
  1000    continue
  2000    continue
-         call bcneusc (ta,1)
-         call add2 (bq(1,1,1,1,ifield-1),ta,n) ! no idea why... pf
+c        call bcneusc (ta,1)
+c        call add2 (bq(1,1,1,1,ifield-1),ta,n) ! no idea why... pf
 
       endif
 
@@ -647,7 +647,7 @@ C
       logical          ifprint,ifconv
 
       parameter (lt=lx1*ly1*lz1*lelt)
-      common /scrns/ ta(lt),tb(lt),gf(lx1*lz1,2*ldim,lelt)
+      common /scrns/ ta(lt),tb(lt)
       common /scrvh/ h1(lt),h2(lt),h3(lt)
       logical ifh3
 
@@ -688,18 +688,17 @@ c        if (ifaxis.and.ifmhd) isd = 2 !This is a problem if T is to be T!
 c        call bcneusc (ta,-1)     !! Not Yet supported for DG
 c        call add2    (h2,ta,n)   !! Not Yet supported for DG
 
-         call bcneuflx(gf) ! add in inhomogeneous Neumann
-         call hxdg_fluxa(ta,gf,h1,h2,h3,ifh3)
-
          call rzero             (tb,n)
          call bcdirsc           (   t (1,1,1,1,ifield-1))
          call conv_bdry_dg_weak (tb,t (1,1,1,1,ifield-1))
          call hxdg_surfa        (tb,t (1,1,1,1,ifield-1),h1,h2,h3,ifh3)
+         call hxdg_fluxa        (tb,                     h1,h2,h3,ifh3)
          call add2              (tb,bq(1,1,1,1,ifield-1),n)
 
          call hmholtz_dg(name4t,t(1,1,1,1,ifield-1),tb,h1,h2,h3,ifh3 
      $                   ,tmask(1,1,1,1,ifield-1)
      $                   ,tolht(ifield),nmxh)
+
          return
 
       endif  ! End of IGEOM branch.
@@ -728,7 +727,7 @@ c-----------------------------------------------------------------------
            if (cbc(f,e,ifld).eq.'f  ') bctype(f,e,ifld) = 'n  ' ! I. Neumann
            if (cbc(f,e,ifld).eq.'C  ') bctype(f,e,ifld) = 'r  ' ! Robin
            if (cbc(f,e,ifld).eq.'c  ') bctype(f,e,ifld) = 'r  ' ! Robin
-        else ! ifld=1
+        else
            call exitti('WHY calling with ifield??$',ifld)
         endif
       enddo
