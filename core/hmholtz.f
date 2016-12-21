@@ -2217,7 +2217,7 @@ c     Helmholtz matrix-vector product: Au = Au + surface term
       return
       end
 c-----------------------------------------------------------------------
-      subroutine hxdg_fluxa(au,g,h1,h2,h3,ifh3)
+      subroutine hxdg_fluxa(au,gf,h1,h2,h3,ifh3)
 
 c                                                          ^
 c     Add to Au := au the surface flux terms g := grad u . n
@@ -2234,7 +2234,8 @@ c      Helmholtz matrix-vector product: Hu = h3*( [A(h1)]*h3 + h2*[B] ) u
       include 'TOTAL'
 
       parameter(lxyz=lx1*ly1*lz1)
-      real au(lx1,ly1,lz1,1),gf(lx1*lz1,2*ldim,lelt,2)
+c     real au(lx1,ly1,lz1,1),gf(lx1*lz1,2*ldim,lelt,2)
+      real au(lx1,ly1,lz1,1),gf(lx1*lz1,2*ldim,lelt)
       real h1(lx1,ly1,lz1,1),h2(1),h3(lx1,ly1,lz1,1)
       logical ifh3
 
@@ -2268,7 +2269,7 @@ c      Helmholtz matrix-vector product: Hu = h3*( [A(h1)]*h3 + h2*[B] ) u
              do j1=js1,jf1,jskip1
                 i = i+1
                 au(j1,j2,1,e) = au(j1,j2,1,e)
-     $                       - area(i,1,f,e)*g(i,f,e)*h3(j1,j2,1,e)
+     $                       - area(i,1,f,e)*gf(i,f,e)*h3(j1,j2,1,e)
              enddo
              enddo
            else
@@ -2276,7 +2277,7 @@ c      Helmholtz matrix-vector product: Hu = h3*( [A(h1)]*h3 + h2*[B] ) u
              do j2=js2,jf2,jskip2
              do j1=js1,jf1,jskip1
                 i = i+1
-                au(j1,j2,1,e) = au(j1,j2,1,e)-area(i,1,f,e)*g(i,f,e)
+                au(j1,j2,1,e) = au(j1,j2,1,e)-area(i,1,f,e)*gf(i,f,e)
              enddo
              enddo
            endif

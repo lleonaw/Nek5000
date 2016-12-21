@@ -647,7 +647,7 @@ C
       logical          ifprint,ifconv
 
       parameter (lt=lx1*ly1*lz1*lelt)
-      common /scrns/ ta(lt),tb(lt)
+      common /scrns/ ta(lt),tb(lt),gf(lx1*lz1,2*ldim,lelt)
       common /scrvh/ h1(lt),h2(lt),h3(lt)
       logical ifh3
 
@@ -688,6 +688,9 @@ c        if (ifaxis.and.ifmhd) isd = 2 !This is a problem if T is to be T!
 c        call bcneusc (ta,-1)     !! Not Yet supported for DG
 c        call add2    (h2,ta,n)   !! Not Yet supported for DG
 
+         call bcneuflx(gf) ! add in inhomogeneous Neumann
+         call hxdg_fluxa(ta,gf,h1,h2,h3,ifh3)
+
          call rzero             (tb,n)
          call bcdirsc           (   t (1,1,1,1,ifield-1))
          call conv_bdry_dg_weak (tb,t (1,1,1,1,ifield-1))
@@ -717,15 +720,15 @@ c-----------------------------------------------------------------------
 
         bctype(f,e,ifld) = 'E  ' ! Elemental
         if (ifld.ge.2) then
-           if (cbc(e,f,ifld).eq.'P  ') bctype(f,e,ifld) = 'P  ' ! Periodic
-           if (cbc(e,f,ifld).eq.'T  ') bctype(f,e,ifld) = 'd  ' ! Dirichlet
-           if (cbc(e,f,ifld).eq.'t  ') bctype(f,e,ifld) = 'd  ' ! Dirichlet
-           if (cbc(e,f,ifld).eq.'I  ') bctype(f,e,ifld) = 'N  ' ! H. Neumann
-           if (cbc(e,f,ifld).eq.'O  ') bctype(f,e,ifld) = 'N  ' ! H. Neumann
-           if (cbc(e,f,ifld).eq.'f  ') bctype(f,e,ifld) = 'n  ' ! I. Neumann
-           if (cbc(e,f,ifld).eq.'C  ') bctype(f,e,ifld) = 'r  ' ! Robin
-           if (cbc(e,f,ifld).eq.'c  ') bctype(f,e,ifld) = 'r  ' ! Robin
-        else
+           if (cbc(f,e,ifld).eq.'P  ') bctype(f,e,ifld) = 'P  ' ! Periodic
+           if (cbc(f,e,ifld).eq.'T  ') bctype(f,e,ifld) = 'd  ' ! Dirichlet
+           if (cbc(f,e,ifld).eq.'t  ') bctype(f,e,ifld) = 'd  ' ! Dirichlet
+           if (cbc(f,e,ifld).eq.'I  ') bctype(f,e,ifld) = 'N  ' ! H. Neumann
+           if (cbc(f,e,ifld).eq.'O  ') bctype(f,e,ifld) = 'N  ' ! H. Neumann
+           if (cbc(f,e,ifld).eq.'f  ') bctype(f,e,ifld) = 'n  ' ! I. Neumann
+           if (cbc(f,e,ifld).eq.'C  ') bctype(f,e,ifld) = 'r  ' ! Robin
+           if (cbc(f,e,ifld).eq.'c  ') bctype(f,e,ifld) = 'r  ' ! Robin
+        else ! ifld=1
            call exitti('WHY calling with ifield??$',ifld)
         endif
       enddo
