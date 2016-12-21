@@ -1562,8 +1562,8 @@ c     Initialization
       niter = min(maxit,maxcg)
  
       imsh = ifield
-c     call setprec_dg (d,h1,h2,h3,ifh3) !  diag preconditioner
-      call invers2    (d,bm1,n) !  diag preconditioner
+      call setprec_dg (d,h1,h2,h3,ifh3) !  diag preconditioner
+c     call invers2    (d,bm1,n) !  diag preconditioner
  
       call copy (r,f,n)
       call rzero(x,n)
@@ -1923,46 +1923,44 @@ c
 c       Here, we add DG surface terms (11/06/16)
 
         do f=1,nface
-           pf     = eface1(f)
-           js1    = skpdat(1,pf)
-           jf1    = skpdat(2,pf)
-           jskip1 = skpdat(3,pf)
-           js2    = skpdat(4,pf)
-           jf2    = skpdat(5,pf)
-           jskip2 = skpdat(6,pf)
+          fwtbc=2*dxm1(lx1,lx1)*fw(f,e)
+          if (f.eq.1.or.f.eq.4.or.f.eq.5) fwtbc=2*dxm1(1,1)*fw(f,e)
+          if (bctype(f,e,ifield).eq.'N  '.or.
+     $        bctype(f,e,ifield).eq.'n  ') fwtbc=0
+          if (fwtbc.ne.0) then
+            pf     = eface1(f)
+            js1    = skpdat(1,pf)
+            jf1    = skpdat(2,pf)
+            jskip1 = skpdat(3,pf)
+            js2    = skpdat(4,pf)
+            jf2    = skpdat(5,pf)
+            jskip2 = skpdat(6,pf)
 
-           i = 0
-           do j2=js2,jf2,jskip2
-           do j1=js1,jf1,jskip1
-              i = i+1
-              d(j1,j2,1,e) = d(j1,j2,1,e) + etalph(i,f,e)
-           enddo
-           enddo
+            i = 0
+            if (f.eq.2.or.f.eq.4) then
+             do j2=js2,jf2,jskip2
+             do j1=js1,jf1,jskip1
+               i = i+1
+               d(j1,j2,1,e)=d(j1,j2,1,e)+etalph(i,f,e)-unr(i,f,e)*fwtbc
+             enddo
+             enddo
+            elseif (f.eq.1.or.f.eq.3) then
+             do j2=js2,jf2,jskip2
+             do j1=js1,jf1,jskip1
+               i = i+1
+               d(j1,j2,1,e)=d(j1,j2,1,e)+etalph(i,f,e)-uns(i,f,e)*fwtbc
+             enddo
+             enddo
+            else
+             do j2=js2,jf2,jskip2
+             do j1=js1,jf1,jskip1
+               i = i+1
+               d(j1,j2,1,e)=d(j1,j2,1,e)+etalph(i,f,e)-unt(i,f,e)*fwtbc
+             enddo
+             enddo
+            endif
+           endif
         enddo
-
-        i=0
-        nx=lx1
-        if (ldim.eq.3) then
-         do i2=1,ly1
-         do i1=1,lx1
-           i=i+1
-           d( 1,i1,i2,e)=d( 1,i1,i2,e)-2*fw(4,e)*unr(i,4,e)*dxm1( 1, 1)
-           d(nx,i1,i2,e)=d(nx,i1,i2,e)-2*fw(2,e)*unr(i,2,e)*dxm1(nx,nx)
-           d(i1, 1,i2,e)=d(i1, 1,i2,e)-2*fw(1,e)*uns(i,1,e)*dym1( 1, 1)
-           d(i1,nx,i2,e)=d(i1,nx,i2,e)-2*fw(3,e)*uns(i,3,e)*dym1(nx,nx)
-           d(i1,i2, 1,e)=d(i1,i2, 1,e)-2*fw(5,e)*unt(i,5,e)*dzm1( 1, 1)
-           d(i1,i2,nx,e)=d(i1,i2,nx,e)-2*fw(6,e)*unt(i,6,e)*dzm1(nx,nx)
-         enddo
-         enddo
-        else  ! 2D
-         do i1=1,lx1
-           i=i+1
-           d( 1,i1,1,e)=d( 1,i1,1,e)-2*fw(4,e)*unr(i,4,e)*dxm1( 1, 1)
-           d(nx,i1,1,e)=d(nx,i1,1,e)-2*fw(2,e)*unr(i,2,e)*dxm1(nx,nx)
-           d(i1, 1,1,e)=d(i1, 1,1,e)-2*fw(1,e)*uns(i,1,e)*dym1( 1, 1)
-           d(i1,nx,1,e)=d(i1,nx,1,e)-2*fw(3,e)*uns(i,3,e)*dym1(nx,nx)
-         enddo
-        endif
 
         do i=1,lxyz
            d(i,1,1,e)=1./(d(i,1,1,e)*h1(i,e)+h2(i,e)*bm1(i,1,1,e))
