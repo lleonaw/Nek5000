@@ -2238,7 +2238,7 @@ c      Helmholtz matrix-vector product: Hu = h3*( [A(h1)]*h3 + h2*[B] ) u
       logical ifh3
 
 
-      integer e,f
+      integer e,f,eg
 
       call dsset(nx1,ny1,nz1)
       nface = 2*ndim
@@ -2248,7 +2248,6 @@ c      Helmholtz matrix-vector product: Hu = h3*( [A(h1)]*h3 + h2*[B] ) u
       do e=1,nelfld(ifield)
       do f=1,nface
          if (bctype(f,e,ifield).eq.'n  ') then ! Inhomogeneous Neumann
-         if (cbc(f,e,ifield).eq.'f  ') then
 
             eg = lglel(e)
             ii=0
@@ -2268,7 +2267,6 @@ c      Helmholtz matrix-vector product: Hu = h3*( [A(h1)]*h3 + h2*[B] ) u
                au(i,j,k,e) = au(i,j,k,e) + area(ii,1,f,e)*flux*h31
 
   200       continue
-         endif
          endif
       enddo
       enddo

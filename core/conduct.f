@@ -686,9 +686,6 @@ c        if (ifaxis.and.ifmhd) isd = 2 !This is a problem if T is to be T!
          if (iftran) intype = -1
          call sethlm  (h1,h2,intype)
 
-c        call bcneusc (ta,-1)     !! Not Yet supported for DG
-c        call add2    (h2,ta,n)   !! Not Yet supported for DG
-
          call rzero             (tb,n)
          call bcdirsc           (   t (1,1,1,1,ifield-1))
          call conv_bdry_dg_weak (tb,t (1,1,1,1,ifield-1))
@@ -699,32 +696,6 @@ c        call add2    (h2,ta,n)   !! Not Yet supported for DG
          call hmholtz_dg(name4t,t(1,1,1,1,ifield-1),tb,h1,h2,h3,ifh3 
      $                   ,tmask(1,1,1,1,ifield-1)
      $                   ,tolht(ifield),nmxh)
-
-         ifprh = .true.
-         if(ifprh) then
-             call rzero     (tb,n)
-             call setprec_dg(tb,h1,h2,h3,ifh3)
-c            call invers2   (tb,bm1,n) !  works ok
-             open(8,file='diag_prec.dat')
-             do i=1,n
-                 write(8,*) i,tb(i),1./tb(i) ! needs inverse?
-             enddo
-             close(8)
-             write(6,*) 'diagonal preconditioner in diag_prec dat'
-
-             call rzero(ta,n)
-             open(9,file='diag_A.dat')
-             do i=1,n
-                 ta(i) = 1.
-                 call hxdg(tb,ta,h1,h2,h3,ifh3)
-c                call col2(tb,binvdg,n) ! multiply inverse mass matrix?
-                 ta(i) = 0.
-                 write(9,*) i,tb(i) ! diagonal part of matrix A
-             enddo
-             close(9)
-             write(6,*) 'diagonal part of A in diag_A dat'
-             stop
-         endif
 
          return
 
@@ -751,11 +722,17 @@ c-----------------------------------------------------------------------
            if (cbc(f,e,ifld).eq.'t  ') bctype(f,e,ifld) = 'd  ' ! Dirichlet
            if (cbc(f,e,ifld).eq.'I  ') bctype(f,e,ifld) = 'N  ' ! H. Neumann
            if (cbc(f,e,ifld).eq.'O  ') bctype(f,e,ifld) = 'N  ' ! H. Neumann
+           if (cbc(f,e,ifld).eq.'o  ') bctype(f,e,ifld) = 'N  ' ! H. Neumann
            if (cbc(f,e,ifld).eq.'f  ') bctype(f,e,ifld) = 'n  ' ! I. Neumann
            if (cbc(f,e,ifld).eq.'C  ') bctype(f,e,ifld) = 'r  ' ! Robin
            if (cbc(f,e,ifld).eq.'c  ') bctype(f,e,ifld) = 'r  ' ! Robin
-        else
-           call exitti('WHY calling with ifield??$',ifld)
+        else ! ifield=1 -> we are solving for pressure field
+           if (cbc(f,e,ifld).eq.'P  ') bctype(f,e,ifld) = 'P  ' ! Periodic
+           if (cbc(f,e,ifld).eq.'v  ') bctype(f,e,ifld) = 'n  ' ! Neumann
+           if (cbc(f,e,ifld).eq.'V  ') bctype(f,e,ifld) = 'n  ' ! Neumann
+           if (cbc(f,e,ifld).eq.'W  ') bctype(f,e,ifld) = 'n  ' ! Neumann
+           if (cbc(f,e,ifld).eq.'O  ') bctype(f,e,ifld) = 'd  ' ! Dirichlet
+           if (cbc(f,e,ifld).eq.'o  ') bctype(f,e,ifld) = 'd  ' ! Dirichlet
         endif
       enddo
       enddo

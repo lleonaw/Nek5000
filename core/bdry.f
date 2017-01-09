@@ -983,7 +983,7 @@ C     Passive scalar term
   100    CONTINUE
          RETURN
 
-      elseif (cb.eq.'o  ') then
+      elseif (cb.eq.'o  '.and.ifield.eq.1) then      !  01/08/17: hard fix for dg - Li
          DO 101 IZ=KZ1,KZ2                           !  11/19/2010: The tmask() screen
          DO 101 IY=KY1,KY2                           !  added here so users can leave
          DO 101 IX=KX1,KX2                           !  certain points to be Neumann,
