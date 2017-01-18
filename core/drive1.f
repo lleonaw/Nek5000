@@ -1,5 +1,6 @@
 c-----------------------------------------------------------------------
       subroutine nek_init(intracomm)
+c
 
       include 'SIZE'
       include 'TOTAL'
@@ -25,6 +26,8 @@ c      COMMON /SCRCH/ DUMMY7(LX1,LY1,LZ1,LELT,2)
 c      COMMON /SCRSF/ DUMMY8(LX1,LY1,LZ1,LELT,3)
 c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
   
+      common /rdump/ ntdump
+
       real kwave2
       real*8 t0, tpp
 
@@ -112,17 +115,16 @@ c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
          endif
       endif
 
-      if(ifcvode) call cv_setsize(0)
+      if(ifcvode) call cv_setsize
 
       if(nio.eq.0) write(6,*) 'call usrdat3'
       call usrdat3
       if(nio.eq.0) write(6,'(A,/)') ' done :: usrdat3'
 
-      call cmt_switch          ! Check if compiled with cmt
-      if (ifcmt) then          ! Initialize CMT branch
+#ifdef CMTNEK
         call nek_cmt_init
         if (nio.eq.0) write(6,*)'Initialized DG machinery'
-      endif
+#endif
 
       call setics      !     Set initial conditions 
       call setprop     !     Compute field properties
@@ -149,6 +151,9 @@ c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
 
       call time00       !     Initalize timers to ZERO
       call opcount(2)
+
+      ntdump=0
+      if (timeio.ne.0.0) ntdump = int( time/timeio )
 
       etims0 = dnekclock_sync()
       if (nio.eq.0) then
@@ -185,11 +190,12 @@ c-----------------------------------------------------------------------
       endif
 
       isyc  = 0
-      itime = 0
       if(ifsync) isyc=1
+      itime = 0
+#ifdef TIMER
       itime = 1
+#endif
       call nek_comm_settings(isyc,itime)
-
       call nek_comm_startstat()
 
       istep  = 0
@@ -197,8 +203,10 @@ c-----------------------------------------------------------------------
 
       do kstep=1,nsteps,msteps
          call nek__multi_advance(kstep,msteps)
+         call check_ioinfo  
+         call set_outfld
          call userchk
-         call prepost (.false.,'his')
+         call prepost (ifoutfld,'his')
          call in_situ_check()
          if (lastep .eq. 1) goto 1001
       enddo
@@ -235,21 +243,28 @@ c-----------------------------------------------------------------------
 
       common /cgeom/ igeom
 
+
       call nekgsync
+
+      call setup_convect(2) ! Save conv vel
+
       if (iftran) call settime
       if (ifmhd ) call cfl_check
       call setsolv
       call comment
 
-      if (ifcmt) then
-         if (nio.eq.0.and.istep.le.1) write(6,*) 'CMT branch active'
-         call cmt_nek_advance
-         return
-      endif
+#ifdef CMTNEK
+      if (nio.eq.0.and.istep.le.1) write(6,*) 'CMT branch active'
+      call cmt_nek_advance
+      return
+#endif
+
 
       if (ifsplit) then   ! PN/PN formulation
 
+
          do igeom=1,ngeom
+
 
          ! within cvode we use the lagged wx for 
          ! extrapolation, that's why we have to call it before gengeom 
@@ -264,13 +279,12 @@ c-----------------------------------------------------------------------
 
          if (igeom.eq.2) then  
                                    call setprop
-            if (iflomach)          call qthermal(.true.,.false.,dummy)
+            if (iflomach)          call qthermal(.true.)
          endif
 
          if (ifflow)               call fluid         (igeom)
          if (ifmvbd)               call meshv         (igeom)
          if (param(103).gt.0)      call q_filter      (param(103))
-                                   call setup_convect (igeom)     ! Save convective velocity _after_ filter 
          enddo
 
       else                ! PN-2/PN-2 formulation
@@ -303,9 +317,6 @@ c-----------------------------------------------------------------------
 
             if (igeom.eq.ngeom.and.param(103).gt.0) 
      $          call q_filter(param(103))
-
-            call setup_convect (igeom) ! Save convective velocity _after_ filter
-
          enddo
       endif
 
