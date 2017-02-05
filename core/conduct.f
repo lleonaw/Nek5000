@@ -550,7 +550,8 @@ c     Face weight: .5 interior, 1. boundary
             a = area(i,1,f,e)  ! Check Fydkowski notes 
             a = a*a*fw(f,e)    ! For ds_avg used below, plus quad weight
             etalph(i,f,e) = eta*(a/bm1(j1,j2,1,e))
-c           write(6,*) i,j1,j2,e,f,a,etalph(i,f,e)
+c           write(6,*) i,j1,j2,e,f,area(i,1,f,e)
+c    $ ,bm1(j1,j2,1,e),etalph(i,f,e),etalph(i,f,e)/area(i,1,f,e)
          enddo
          enddo
       enddo

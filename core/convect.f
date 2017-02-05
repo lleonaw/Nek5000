@@ -438,6 +438,13 @@ c
          enddo
       enddo
 c
+      ! return GL point
+      if(mp.eq.np) then
+        call rzero(jgl,mp*mp)
+        do i=1,mp
+          jgl(i,i) = 1.
+        enddo
+      endif
       call transpose(jgt,np,jgl,mp)
 c
       return
@@ -539,6 +546,7 @@ c
 c     Get pointer to GL-GL interpolation dgl() for pair (mx,md)
 c
       include 'SIZE'
+      include 'DXYZ'
 c
       parameter (ldg=lxd**3,lwkd=4*lxd*lxd)
       common /dgrad/ d(ldg),dt(ldg),dg(ldg),dgt(ldg),jgl(ldg),jgt(ldg)
@@ -567,6 +575,10 @@ c
          call lim_chk(nwrkd ,lwkd,'wkd  ','lwkd ','get_dgl_pt')
 c
          call gen_dgl(dg (ip),dgt(ip),md,mx,wkd)
+         if(md.eq.lx1) then ! derivative operator on lx1 grid
+           call copy(dg (ip), dxm1, nx1*nx1)
+           call copy(dgt(ip),dxtm1, nx1*nx1)
+         endif
       endif
 c
       return
@@ -1691,6 +1703,7 @@ c-----------------------------------------------------------------------
          icalld = 1
 
          call zwgl(zptf,wgtf,nxd)
+         if(nxd.eq.nx1) call zwgll(zptf,wgtf,nxd) ! hard fix
          if (if3d) then
             k=0
             do j=1,ny1

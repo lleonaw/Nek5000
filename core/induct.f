@@ -1540,6 +1540,7 @@ C
       nxyzd = nxd*nyd*nzd
 
       call zwgl (zd,wd,nxd)  ! zwgl -- NOT zwgll!
+      if(nxd.eq.nx1) call zwgll(zd,wd,nxd) ! zwgll!
 
       if (if3d) then
 c
