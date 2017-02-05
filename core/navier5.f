@@ -4572,6 +4572,7 @@ c     add multiple passive scalar fields (npass new ones)
 
       character*3 f2tbc(2,nbc)
 
+      nfield = 1 ! Thie helps with ifmvbd flag, don't know why
       do i=1,npass
          call add_temp_1(f2tbc,nbc)
       enddo
