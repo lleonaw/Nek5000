@@ -1962,12 +1962,14 @@ c       Here, we add DG surface terms (11/06/16)
            endif
         enddo
 
-        do i=1,lxyz
-           d(i,1,1,e)=1./(d(i,1,1,e)*h1(i,e)+h2(i,e)*bm1(i,1,1,e))
-        enddo
         if (ifh3) then
           do i=1,lxyz
-             d(i,1,1,e)=d(i,1,1,e)/(h3(i,e)*h3(i,e))
+             d(i,1,1,e)=1./(d(i,1,1,e)*h1(i,e)*h3(i,e)*h3(i,e)
+     $                     + bm1(i,1,1,e)*h2(i,e)*h3(i,e))
+          enddo
+        else
+          do i=1,lxyz
+             d(i,1,1,e)=1./(d(i,1,1,e)*h1(i,e)+h2(i,e)*bm1(i,1,1,e))
           enddo
         endif
 
@@ -2178,8 +2180,8 @@ c     Helmholtz matrix-vector product: Au = Au + surface term
           endif
 
           do f=1,nface
-c          if (fw(f,e).gt.0.6) then
-          if (fw(f,e).gt.0.6.and.bctype(f,e,ifield).eq.'d  ') then
+           if (fw(f,e).gt.0.6) then
+c          if (fw(f,e).gt.0.6.and.bctype(f,e,ifield).eq.'d  ') then
 c           write(6,*) f,e,ifield,fw(f,e),bctype(f,e,ifield),'surfa bc'
              pf     = eface1(f)
              js1    = skpdat(1,pf)
